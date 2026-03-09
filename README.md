@@ -9,6 +9,8 @@ A simple AI assistant for Signal that you can run on your own computer. Chat wit
 3. Docker installed ([get Docker](https://docs.docker.com/get-docker/))
 4. An Anthropic API key ([sign up free](https://console.anthropic.com/))
 
+> **Note:** This bot uses [signal-cli-rest-api](https://github.com/bbernhard/signal-cli-rest-api) (run via Docker) as the bridge to Signal's servers. The bot itself runs on Node.js.
+
 ## Setup (10 minutes)
 
 ### Step 1: Download the Code
@@ -25,7 +27,7 @@ npm install
 docker-compose up -d signal-api
 ```
 
-This starts a local service that connects your bot to Signal. Wait 30 seconds for it to start.
+This starts signal-cli-rest-api in Docker, which connects your bot to Signal's servers. Wait 30 seconds for it to start.
 
 ### Step 3: Register Your Signal Number
 
@@ -313,6 +315,28 @@ pm2 start npm --name signal-bot -- start
 pm2 save
 pm2 startup  # Follow instructions to start on boot
 ```
+
+### Running Multiple Bots
+
+The unified start script handles Docker + multiple bots automatically:
+
+```bash
+# Create .env files for each bot (.env.bot1, .env.bot2, etc.)
+cp .env.example .env.bot1
+cp .env.example .env.bot2
+
+# Edit each with different SIGNAL_PHONE_NUMBER and SIGNAL_API_URL (ports 8080, 8081, etc.)
+
+# Start everything (Docker + all bots via PM2)
+npm run start:all
+
+# Other commands
+npm run stop:all     # Stop all bots
+npm run status       # Show status of all bots
+npm run logs         # View combined logs
+```
+
+The script auto-discovers `.env.*` files and manages each as a separate PM2 process.
 
 ## Documentation
 

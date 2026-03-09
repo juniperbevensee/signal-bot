@@ -189,27 +189,45 @@ export function createSignalTools(ctx: SignalContext, workspaceDir?: string): To
       emoji,
       target_timestamp,
     }: {
-      recipient: string;
+      recipient: string | number;
       emoji: string;
       target_timestamp: number;
     }) => {
-      const result = await ctx.sendReaction(recipient, emoji, target_timestamp);
-      return JSON.stringify(
-        {
-          success: true,
-          recipient,
-          emoji,
-          target_timestamp,
-          ...result,
-        },
-        null,
-        2
-      );
+      // Coerce recipient to string and ensure E.164 format
+      let recipientStr = String(recipient);
+      if (!recipientStr.startsWith('+') && !recipientStr.includes('-')) {
+        // Looks like a phone number without +, add it
+        recipientStr = '+' + recipientStr;
+      }
+
+      try {
+        const result = await ctx.sendReaction(recipientStr, emoji, target_timestamp);
+        return JSON.stringify(
+          {
+            success: true,
+            recipient: recipientStr,
+            emoji,
+            target_timestamp,
+            ...result,
+          },
+          null,
+          2
+        );
+      } catch (error) {
+        return JSON.stringify(
+          {
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          },
+          null,
+          2
+        );
+      }
     },
     {
       name: 'signal_send_reaction',
       zodSchema: z.object({
-        recipient: z.string().describe("Message sender's phone number (E.164 format) or UUID"),
+        recipient: z.union([z.string(), z.number()]).describe("Message sender's phone number (E.164 format, e.g. +14155551234) or UUID"),
         emoji: z.string().describe('Emoji to react with'),
         target_timestamp: z.number().describe('Timestamp of the message to react to'),
       }),
