@@ -59,7 +59,6 @@ SIGNAL_ALLOWED_SENDERS=+19876543210   # YOUR personal number (who can message th
 LLM_PROVIDER=lmstudio
 LLM_BASE_URL=http://localhost:1234
 LLM_MODEL=qwen/qwen-2.5-coder-7b-instruct
-ANTHROPIC_API_KEY=not-needed  # Required but not used with LM Studio
 
 # Option 2: Anthropic Claude (Paid, cloud)
 # LLM_PROVIDER=anthropic
@@ -350,7 +349,6 @@ Setup:
 LLM_PROVIDER=lmstudio
 LLM_BASE_URL=http://localhost:1234
 LLM_MODEL=qwen/qwen-2.5-coder-7b-instruct
-ANTHROPIC_API_KEY=not-needed
 ```
 
 Restart the bot - done! No API costs, runs completely offline.
@@ -382,9 +380,6 @@ LLM_MODEL=gemini-2.5-pro
 # - gemini-2.5-pro (most capable)
 # - gemini-2.0-flash-exp (fast)
 # - gemini-1.5-pro (stable)
-
-# You still need this (but can be any value):
-ANTHROPIC_API_KEY=not-needed
 ```
 
 Restart the bot. It now uses Gemini via Vertex AI!

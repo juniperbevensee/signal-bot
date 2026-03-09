@@ -130,7 +130,6 @@ export function loadConfig(): BotConfig {
   // Required variables
   const SIGNAL_API_URL = process.env.SIGNAL_API_URL;
   const SIGNAL_PHONE_NUMBER = process.env.SIGNAL_PHONE_NUMBER;
-  const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
   if (!SIGNAL_API_URL) {
     errors.push('SIGNAL_API_URL is required');
@@ -140,9 +139,11 @@ export function loadConfig(): BotConfig {
     errors.push('SIGNAL_PHONE_NUMBER is required');
   }
 
-  // ANTHROPIC_API_KEY is only required for anthropic provider
-  const LLM_PROVIDER_CHECK = process.env.LLM_PROVIDER || 'anthropic';
-  if (LLM_PROVIDER_CHECK === 'anthropic' && !ANTHROPIC_API_KEY) {
+  // LLM provider-specific validation
+  const LLM_PROVIDER = (process.env.LLM_PROVIDER || 'anthropic') as 'anthropic' | 'openai' | 'lmstudio' | 'vertex' | 'bedrock';
+  const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+
+  if (LLM_PROVIDER === 'anthropic' && !ANTHROPIC_API_KEY) {
     errors.push('ANTHROPIC_API_KEY is required when using anthropic provider');
   }
 
@@ -174,7 +175,6 @@ export function loadConfig(): BotConfig {
   }
 
   // LLM configuration
-  const LLM_PROVIDER = (process.env.LLM_PROVIDER || 'anthropic') as 'anthropic' | 'openai' | 'lmstudio' | 'vertex' | 'bedrock';
   const LLM_BASE_URL = process.env.LLM_BASE_URL; // For OpenAI-compatible APIs
   const LLM_MODEL = process.env.LLM_MODEL || 'claude-sonnet-4-20250514';
   const LLM_MAX_TOKENS = process.env.LLM_MAX_TOKENS
@@ -339,7 +339,15 @@ export function loadConfig(): BotConfig {
     },
     llm: {
       provider: LLM_PROVIDER,
-      apiKey: (LLM_PROVIDER === 'vertex' ? (VERTEX_API_KEY || ANTHROPIC_API_KEY) : ANTHROPIC_API_KEY)!,
+      apiKey: ((): string => {
+        if (LLM_PROVIDER === 'vertex') {
+          return VERTEX_API_KEY || ANTHROPIC_API_KEY || '';
+        }
+        if (LLM_PROVIDER === 'lmstudio' || LLM_PROVIDER === 'openai') {
+          return ANTHROPIC_API_KEY || 'not-needed';
+        }
+        return ANTHROPIC_API_KEY || '';
+      })(),
       baseURL: LLM_BASE_URL,
       model: LLM_MODEL,
       maxTokens: LLM_MAX_TOKENS,
