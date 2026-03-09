@@ -29,6 +29,9 @@ This starts a local service that connects your bot to Signal. Wait 30 seconds fo
 
 ### Step 3: Register Your Signal Number
 
+> **⚠️ Note on Signal Registration:**
+> This auth flow has been tested primarily with **Twilio numbers** and **talkyto.io** for headless registration. You can also use a regular phone with the Signal app for device linking (Option B below). Signal's registration servers can be finicky - if you encounter issues, try waiting a few minutes and retrying, or use a different number/method.
+
 **Two approaches:**
 
 **Option A: Headless Registration (Recommended)**
