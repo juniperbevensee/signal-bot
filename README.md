@@ -81,9 +81,11 @@ That's it! The bot will use your local model instead of paid API calls.
 **Review these defaults:**
 ```bash
 DATABASE_PATH=./data/signal-bot.db    # Where SQLite stores messages
-SIGNAL_BOT_NAMES=Bot,Assistant        # Names for @mentions in groups
+SIGNAL_BOT_NAMES=Bot,Assistant        # Plaintext names to trigger bot in groups (REQUIRED for groups!)
 SIGNAL_API_URL=http://localhost:8080  # Signal API endpoint (change if running multiple bots)
 ```
+
+> **Note:** `SIGNAL_BOT_NAMES` is REQUIRED if using groups. The bot only responds when these plaintext names appear in messages (NOT Signal's @ mentions).
 
 > **Tip:** The `.env.example` file has detailed comments for all settings. Most defaults work fine, but review them to understand what's configurable.
 
@@ -203,7 +205,21 @@ To use the bot in groups:
 
 1. Add the bot's number to your group
 2. Add the group ID to `SIGNAL_ALLOWED_GROUPS` in `.env`
-3. Mention the bot by name: "@Bot hello" or "hey Assistant"
+3. **Set bot names in `SIGNAL_BOT_NAMES`** - REQUIRED for groups to work
+4. Mention the bot using plaintext names: "Bot hello" or "hey Assistant"
+
+**Important:** The bot does NOT respond to Signal's native @mentions (the @ symbol). It only recognizes **plaintext names** you configure in `SIGNAL_BOT_NAMES`. These names are case-insensitive and can appear anywhere in your message.
+
+Examples that work:
+- "Bot, what's the weather?"
+- "hey Assistant can you help?"
+- "I need help, Bot"
+
+Examples that DON'T work:
+- "@Bot hello" (@ symbol is ignored)
+- "hello" (no bot name mentioned)
+
+Default names in `.env.example` are `Bot,Assistant` but you should customize these to match your bot's Signal profile name.
 
 ### File Attachments
 
