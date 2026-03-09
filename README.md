@@ -11,9 +11,9 @@ A simple AI assistant for Signal that you can run on your own computer. Chat wit
 
 > **Note:** This bot uses [signal-cli-rest-api](https://github.com/bbernhard/signal-cli-rest-api) (run via Docker) as the bridge to Signal's servers. The bot itself runs on Node.js.
 
-## Setup (10 minutes)
+## Setup (5 minutes)
 
-### Step 1: Download the Code
+### Step 1: Download and Install
 
 ```bash
 git clone <this-repo-url>
@@ -21,7 +21,42 @@ cd signal-bot
 npm install
 ```
 
-### Step 2: Start the Signal Service
+### Step 2: Configure
+
+```bash
+cp .env.example .env
+nano .env  # or use any text editor
+```
+
+Fill in:
+```bash
+SIGNAL_PHONE_NUMBER=+14155551234      # Your bot's phone number
+ANTHROPIC_API_KEY=sk-ant-api03-...    # From console.anthropic.com
+SIGNAL_ALLOWED_SENDERS=+14155551234   # Who can message the bot
+```
+
+### Step 3: Start Everything
+
+```bash
+npm run start:all
+```
+
+This single command:
+- ✅ Checks Docker is running
+- ✅ Starts the Signal API container
+- ✅ Checks if your number is registered
+- ✅ Walks you through registration if needed
+- ✅ Starts the bot
+
+That's it! Send a message to your bot's number to test it.
+
+---
+
+## Manual Setup (Alternative)
+
+If you prefer more control, here's the step-by-step approach:
+
+### Start the Signal Service
 
 ```bash
 docker-compose up -d signal-api
@@ -29,7 +64,7 @@ docker-compose up -d signal-api
 
 This starts signal-cli-rest-api in Docker, which connects your bot to Signal's servers. Wait 30 seconds for it to start.
 
-### Step 3: Register Your Signal Number
+### Register Your Signal Number
 
 > **⚠️ Note on Signal Registration:**
 > This auth flow has been tested primarily with **Twilio numbers** and **talkyto.io** for headless registration. You can also use a regular phone with the Signal app for device linking (Option B below). Signal's registration servers can be finicky - if you encounter issues, try waiting a few minutes and retrying, or use a different number/method.
@@ -66,39 +101,11 @@ Or manually:
 
 **Already have a number registered in ~/.signal-cli?** See [REUSE-EXISTING-REGISTRATION.md](REUSE-EXISTING-REGISTRATION.md)
 
-### Step 4: Configure the Bot
-
-Create a file called `.env`:
+### Configure and Start
 
 ```bash
-# Copy the example
 cp .env.example .env
-
-# Edit it with your info
-nano .env
-```
-
-Fill in these values:
-
-```bash
-# The phone number you just linked (include country code)
-SIGNAL_PHONE_NUMBER=+14155551234
-
-# Your Anthropic API key from console.anthropic.com
-ANTHROPIC_API_KEY=sk-ant-api03-...
-
-# Your phone number (who can message the bot)
-SIGNAL_ALLOWED_SENDERS=+14155551234
-
-# Which Signal API to use (don't change if using Docker)
-SIGNAL_API_URL=http://localhost:8080
-```
-
-**Save and close** (Ctrl+X, then Y, then Enter in nano)
-
-### Step 5: Start the Bot
-
-```bash
+nano .env  # Fill in your settings
 npm start
 ```
 
@@ -111,13 +118,9 @@ You should see:
 [INFO] Listening for messages...
 ```
 
-### Step 6: Test It
+### Test It
 
-1. Open Signal on your phone
-2. Send a message to the number you linked
-3. The bot should respond!
-
-Try: "Hello!" or "What can you do?"
+Send a message to your bot's number from Signal. Try: "Hello!" or "What can you do?"
 
 ## Using the Bot
 
