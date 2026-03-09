@@ -46,9 +46,12 @@ This single command:
 - ✅ Starts the Signal API container
 - ✅ Checks if your number is registered
 - ✅ Walks you through registration if needed
-- ✅ Starts the bot
+- ✅ Stops any existing bot processes
+- ✅ Starts the bot(s) via PM2
 
 That's it! Send a message to your bot's number to test it.
+
+> **Tip:** `npm run start:all` is also the restart command - it automatically stops existing processes first. Use it whenever you change config or pull updates.
 
 ---
 
