@@ -28,12 +28,21 @@ cp .env.example .env
 nano .env  # or use any text editor
 ```
 
-Fill in:
+**Required settings:**
 ```bash
 SIGNAL_PHONE_NUMBER=+14155551234      # Your bot's phone number
 ANTHROPIC_API_KEY=sk-ant-api03-...    # From console.anthropic.com
-SIGNAL_ALLOWED_SENDERS=+14155551234   # Who can message the bot
+SIGNAL_ALLOWED_SENDERS=+14155551234   # Who can message the bot (comma-separated)
 ```
+
+**Review these defaults:**
+```bash
+DATABASE_PATH=./data/signal-bot.db    # Where SQLite stores messages
+SIGNAL_BOT_NAMES=Bot,Assistant        # Names for @mentions in groups
+SIGNAL_API_URL=http://localhost:8080  # Signal API endpoint (change if running multiple bots)
+```
+
+> **Tip:** The `.env.example` file has detailed comments for all settings. Most defaults work fine, but review them to understand what's configurable.
 
 ### Step 3: Start Everything
 
@@ -155,6 +164,95 @@ mkdir -p workspace
 ```
 
 Then ask: "Create a chart and send it to me"
+
+## Advanced Features
+
+### Data Science Tools
+
+The bot includes 20+ data science tools for analysis and visualization:
+
+**Statistics & Analysis:**
+- Calculate summary statistics (mean, median, std, quartiles)
+- Correlation analysis between datasets
+- Linear regression
+- Moving averages
+
+**Charts & Visualizations:**
+- Line charts, bar charts, scatter plots
+- Pie charts, histograms
+- All charts saved as PNG files in your workspace
+
+**Text & NLP:**
+- Sentiment analysis
+- Word frequency analysis
+- TF-IDF, keyword extraction
+- Topic modeling, text similarity
+- Text classification
+
+**Data Wrangling:**
+- Convert between CSV and JSON
+- Fill missing values
+- Filter and aggregate data
+
+Example usage:
+```
+"Calculate summary statistics for [1, 5, 10, 15, 20, 25]"
+"Create a line chart showing monthly sales: Jan=100, Feb=150, Mar=200"
+"Analyze the sentiment of this review: [text]"
+```
+
+### Optional Integrations
+
+#### Open Measures (Social Media Intelligence)
+
+Search and analyze data across 30+ social media platforms including Telegram, Gab, Discord, Truth Social, Bluesky, and more.
+
+Setup:
+```bash
+# In .env, add:
+OPEN_MEASURES_API_KEY=your-api-key-here
+```
+
+Available tools:
+- `om_search` - Search posts across platforms
+- `om_timeseries` - Analyze activity trends over time
+- `om_account_info` - Get account details
+
+Example: "Search Telegram for posts about bitcoin in the last 7 days"
+
+#### Discord Integration
+
+Send messages and interact with Discord servers.
+
+Setup:
+```bash
+# In .env, add:
+DISCORD_TOKEN=your-bot-token
+DISCORD_CLIENT_ID=your-client-id
+DISCORD_GUILD_ID=your-server-id  # Optional default server
+```
+
+Available tools:
+- `discord_send_message` - Send messages to channels
+- `discord_list_channels` - List server channels
+- `discord_get_messages` - Fetch recent messages
+
+Example: "Send a message to Discord channel 123456789"
+
+**Note:** All integrations are optional and fail gracefully if not configured.
+
+### Approved Users
+
+Restrict certain operations (like profile updates) to approved users:
+
+```bash
+# In .env, add:
+SIGNAL_APPROVED_USERS=+14155551234,uuid-here
+```
+
+Only these users can:
+- Update the bot's Signal profile name and avatar
+- Other sensitive operations
 
 ## Alternative LLM Providers
 
