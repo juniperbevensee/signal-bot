@@ -52,12 +52,18 @@ export interface BotConfig {
     awsBearerToken?: string;
     awsRegion?: string;
     // Vertex AI specific (uses apiKey for GOOGLE_CLOUD_API_KEY)
+    // Rate limiting (slow mode)
+    slowMode?: boolean;
+    rateLimitTPM?: number; // Tokens per minute limit
   };
 
   // Optional Features
   workspaceDir?: string;
   enableActivityLogging: boolean;
   logLevel: 'debug' | 'info' | 'warn' | 'error';
+
+  // Sandboxed workspace for file operations
+  sandboxDir?: string;
 
   // MCP (Model Context Protocol) - Optional
   mcp?: {
@@ -68,6 +74,24 @@ export interface BotConfig {
       args: string[];
       env?: Record<string, string>;
     }>;
+  };
+
+  // Optional Integrations
+  integrations?: {
+    discord?: {
+      token: string;
+      clientId: string;
+      guildId?: string;
+    };
+    attio?: {
+      apiKey: string;
+    };
+    googleDrive?: {
+      serviceAccountKeyPath: string;
+    };
+    openMeasures?: {
+      apiKey: string;
+    };
   };
 }
 
@@ -168,9 +192,53 @@ export function loadConfig(): BotConfig {
 
   // Optional configuration
   const WORKSPACE_DIR = process.env.WORKSPACE_DIR;
+  const SANDBOX_DIR = process.env.SANDBOX_DIR;
   const ENABLE_ACTIVITY_LOGGING = process.env.ENABLE_ACTIVITY_LOGGING !== 'false';
   const LOG_LEVEL = (process.env.LOG_LEVEL || 'info') as 'debug' | 'info' | 'warn' | 'error';
   const SIGNAL_POLL_INTERVAL = parseInt(process.env.SIGNAL_POLL_INTERVAL || '5000', 10);
+
+  // Slow mode / rate limiting
+  const SLOW_MODE = process.env.ANTHROPIC_SLOW_MODE === 'true';
+  const RATE_LIMIT_TPM = process.env.ANTHROPIC_RATE_LIMIT_TPM
+    ? parseInt(process.env.ANTHROPIC_RATE_LIMIT_TPM, 10)
+    : 30000;
+
+  // Optional Integrations
+  let integrations: BotConfig['integrations'] | undefined;
+
+  // Discord
+  if (process.env.DISCORD_TOKEN) {
+    integrations = integrations || {};
+    integrations.discord = {
+      token: process.env.DISCORD_TOKEN,
+      clientId: process.env.DISCORD_CLIENT_ID || '',
+      guildId: process.env.DISCORD_GUILD_ID,
+    };
+  }
+
+  // Attio
+  if (process.env.ATTIO_API_KEY) {
+    integrations = integrations || {};
+    integrations.attio = {
+      apiKey: process.env.ATTIO_API_KEY,
+    };
+  }
+
+  // Google Drive
+  if (process.env.GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY_PATH) {
+    integrations = integrations || {};
+    integrations.googleDrive = {
+      serviceAccountKeyPath: process.env.GOOGLE_DRIVE_SERVICE_ACCOUNT_KEY_PATH,
+    };
+  }
+
+  // Open Measures
+  if (process.env.OPEN_MEASURES_API_KEY) {
+    integrations = integrations || {};
+    integrations.openMeasures = {
+      apiKey: process.env.OPEN_MEASURES_API_KEY,
+    };
+  }
 
   // MCP (Model Context Protocol) - Optional
   let mcpConfig: BotConfig['mcp'] | undefined;
@@ -229,11 +297,15 @@ export function loadConfig(): BotConfig {
       maxTokens: LLM_MAX_TOKENS,
       awsBearerToken: AWS_BEARER_TOKEN,
       awsRegion: AWS_REGION,
+      slowMode: SLOW_MODE,
+      rateLimitTPM: RATE_LIMIT_TPM,
     },
     workspaceDir: WORKSPACE_DIR,
+    sandboxDir: SANDBOX_DIR,
     enableActivityLogging: ENABLE_ACTIVITY_LOGGING,
     logLevel: LOG_LEVEL,
     mcp: mcpConfig,
+    integrations,
   };
 }
 

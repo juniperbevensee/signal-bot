@@ -79,18 +79,23 @@ export interface DatabaseClient {
 // ============================================================================
 
 export class SQLiteClient implements DatabaseClient {
-  private db: Database.Database;
+  private _db: Database.Database;
 
   constructor(dbPath: string) {
-    this.db = new Database(dbPath);
-    this.db.pragma('journal_mode = WAL'); // Better concurrency
-    this.db.pragma('foreign_keys = ON'); // Enforce foreign keys
+    this._db = new Database(dbPath);
+    this._db.pragma('journal_mode = WAL'); // Better concurrency
+    this._db.pragma('foreign_keys = ON'); // Enforce foreign keys
     this.initialize();
+  }
+
+  /** Get the underlying better-sqlite3 database instance */
+  get db(): Database.Database {
+    return this._db;
   }
 
   private initialize(): void {
     // Run schema SQL to create tables and indexes
-    this.db.exec(SCHEMA_SQL);
+    this._db.exec(SCHEMA_SQL);
 
     // Set initial schema version if not exists
     const version = this.getConfig('schema_version');
@@ -104,7 +109,7 @@ export class SQLiteClient implements DatabaseClient {
   // ==========================================================================
 
   getChat(signalChatId: string): Chat | null {
-    const stmt = this.db.prepare(
+    const stmt = this._db.prepare(
       'SELECT * FROM chats WHERE signal_chat_id = ?'
     );
     return stmt.get(signalChatId) as Chat | null;
@@ -118,7 +123,7 @@ export class SQLiteClient implements DatabaseClient {
     const id = generateId();
     const timestamp = now();
 
-    const stmt = this.db.prepare(`
+    const stmt = this._db.prepare(`
       INSERT INTO chats (id, chat_type, signal_chat_id, display_name, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?)
     `);
@@ -159,14 +164,14 @@ export class SQLiteClient implements DatabaseClient {
     values.push(now());
     values.push(chatId);
 
-    const stmt = this.db.prepare(
+    const stmt = this._db.prepare(
       `UPDATE chats SET ${fields.join(', ')} WHERE id = ?`
     );
     stmt.run(...values);
   }
 
   listChats(limit: number = 50): Chat[] {
-    const stmt = this.db.prepare(`
+    const stmt = this._db.prepare(`
       SELECT * FROM chats
       ORDER BY updated_at DESC
       LIMIT ?
@@ -190,7 +195,7 @@ export class SQLiteClient implements DatabaseClient {
     const id = generateId();
     const timestamp = now();
 
-    const stmt = this.db.prepare(`
+    const stmt = this._db.prepare(`
       INSERT INTO messages (
         id, chat_id, direction, sender, content,
         timestamp, signal_timestamp, message_type, metadata
@@ -211,7 +216,7 @@ export class SQLiteClient implements DatabaseClient {
     );
 
     // Update chat's updated_at timestamp
-    this.db.prepare('UPDATE chats SET updated_at = ? WHERE id = ?').run(timestamp, chatId);
+    this._db.prepare('UPDATE chats SET updated_at = ? WHERE id = ?').run(timestamp, chatId);
 
     return {
       id,
@@ -227,7 +232,7 @@ export class SQLiteClient implements DatabaseClient {
   }
 
   getMessages(chatId: string, limit: number = 50, offset: number = 0): Message[] {
-    const stmt = this.db.prepare(`
+    const stmt = this._db.prepare(`
       SELECT * FROM messages
       WHERE chat_id = ?
       ORDER BY timestamp DESC
@@ -237,7 +242,7 @@ export class SQLiteClient implements DatabaseClient {
   }
 
   searchMessages(chatId: string, query: string, limit: number = 20): Message[] {
-    const stmt = this.db.prepare(`
+    const stmt = this._db.prepare(`
       SELECT * FROM messages
       WHERE chat_id = ? AND content LIKE ? ESCAPE '\\'
       ORDER BY timestamp DESC
@@ -248,7 +253,7 @@ export class SQLiteClient implements DatabaseClient {
   }
 
   messageExists(signalTimestamp: number, sender: string): boolean {
-    const stmt = this.db.prepare(
+    const stmt = this._db.prepare(
       'SELECT 1 FROM messages WHERE signal_timestamp = ? AND sender = ? LIMIT 1'
     );
     return stmt.get(signalTimestamp, sender) !== undefined;
@@ -262,7 +267,7 @@ export class SQLiteClient implements DatabaseClient {
     const id = generateId();
     const timestamp = now();
 
-    const stmt = this.db.prepare(`
+    const stmt = this._db.prepare(`
       INSERT INTO activity_logs (
         id, chat_id, trace_id, parent_id, log_type, step_number, content, created_at
       )
@@ -304,7 +309,7 @@ export class SQLiteClient implements DatabaseClient {
     const id = generateId();
     const timestamp = now();
 
-    const stmt = this.db.prepare(`
+    const stmt = this._db.prepare(`
       INSERT INTO activity_logs (
         id, chat_id, trace_id, parent_id, log_type, step_number, content, created_at
       )
@@ -336,7 +341,7 @@ export class SQLiteClient implements DatabaseClient {
   }
 
   getActivityTrace(traceId: string): ActivityLog[] {
-    const stmt = this.db.prepare(`
+    const stmt = this._db.prepare(`
       SELECT * FROM activity_logs
       WHERE trace_id = ?
       ORDER BY step_number ASC
@@ -345,7 +350,7 @@ export class SQLiteClient implements DatabaseClient {
   }
 
   getRecentActivity(chatId: string, limit: number = 20): ActivityLog[] {
-    const stmt = this.db.prepare(`
+    const stmt = this._db.prepare(`
       SELECT * FROM activity_logs
       WHERE chat_id = ?
       ORDER BY created_at DESC
@@ -360,7 +365,7 @@ export class SQLiteClient implements DatabaseClient {
 
   isUserApproved(phoneNumber: string, chatId?: string): boolean {
     // Check for global approval
-    const globalStmt = this.db.prepare(`
+    const globalStmt = this._db.prepare(`
       SELECT 1 FROM approved_users
       WHERE phone_number = ? AND approval_type = 'global'
       LIMIT 1
@@ -371,7 +376,7 @@ export class SQLiteClient implements DatabaseClient {
 
     // Check for chat-specific approval if chatId provided
     if (chatId) {
-      const chatStmt = this.db.prepare(`
+      const chatStmt = this._db.prepare(`
         SELECT 1 FROM approved_users
         WHERE phone_number = ? AND approval_type = 'chat_specific' AND chat_id = ?
         LIMIT 1
@@ -394,7 +399,7 @@ export class SQLiteClient implements DatabaseClient {
     const id = generateId();
     const timestamp = now();
 
-    const stmt = this.db.prepare(`
+    const stmt = this._db.prepare(`
       INSERT INTO approved_users (
         id, phone_number, approval_type, chat_id, approved_by, approved_at, notes
       )
@@ -427,7 +432,7 @@ export class SQLiteClient implements DatabaseClient {
   }
 
   listApprovedUsers(): ApprovedUser[] {
-    const stmt = this.db.prepare('SELECT * FROM approved_users ORDER BY approved_at DESC');
+    const stmt = this._db.prepare('SELECT * FROM approved_users ORDER BY approved_at DESC');
     return stmt.all() as ApprovedUser[];
   }
 
@@ -436,14 +441,14 @@ export class SQLiteClient implements DatabaseClient {
   // ==========================================================================
 
   getConfig(key: string): string | null {
-    const stmt = this.db.prepare('SELECT value FROM bot_config WHERE key = ?');
+    const stmt = this._db.prepare('SELECT value FROM bot_config WHERE key = ?');
     const result = stmt.get(key) as { value: string } | undefined;
     return result?.value || null;
   }
 
   setConfig(key: string, value: string): void {
     const timestamp = now();
-    const stmt = this.db.prepare(`
+    const stmt = this._db.prepare(`
       INSERT INTO bot_config (key, value, updated_at)
       VALUES (?, ?, ?)
       ON CONFLICT(key) DO UPDATE SET
@@ -458,6 +463,6 @@ export class SQLiteClient implements DatabaseClient {
   // ==========================================================================
 
   close(): void {
-    this.db.close();
+    this._db.close();
   }
 }

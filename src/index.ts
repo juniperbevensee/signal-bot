@@ -12,6 +12,9 @@ import { createLLMClient } from './agent/llm-client';
 import { initMemoryFile, loadMemoryForPrompt, memoryTools } from './agent/memory';
 import { createSignalTools } from './signal/tools';
 import { createChatHistoryTools } from './tools/chat-history';
+import { createSandboxTools } from './tools/sandbox-fs';
+import { createBrowserTools } from './tools/browser';
+import { createLogTools } from './tools/logs';
 
 async function main() {
   // Load configuration
@@ -51,6 +54,8 @@ You have access to the following tools:
 - **Memory tools**: Store and retrieve preferences
 - **Signal tools**: Send messages, reactions, list groups
 - **Chat history**: Search and retrieve previous messages
+- **Browser tools**: Fetch web pages, search the web, retrieve JSON APIs
+- **Log tools**: View your own activity logs, statistics, and tool usage
 
 ## Response Guidelines
 
@@ -77,16 +82,33 @@ Current chat context will be provided with each message.`;
     awsBearerToken: config.llm.awsBearerToken,
     awsRegion: config.llm.awsRegion,
     model: config.llm.model,
+    slowMode: config.llm.slowMode,
+    rateLimitTPM: config.llm.rateLimitTPM,
   });
   logger.info(`LLM provider: ${config.llm.provider}`);
+  if (config.llm.slowMode) {
+    logger.info(`Slow mode enabled (rate limit: ${config.llm.rateLimitTPM} TPM)`);
+  }
 
   // Create tools
   const signalTools = createSignalTools(signalContext, config.workspaceDir);
+  const browserTools = createBrowserTools();
+  const logTools = createLogTools(db.db);
+
   const allTools = [
     ...signalTools,
     ...memoryTools,
+    ...browserTools,
+    ...logTools,
     // Note: chat history tools are created per-message with current chat ID
   ];
+
+  // Add sandbox tools if configured
+  if (config.sandboxDir) {
+    const sandboxTools = createSandboxTools(config.sandboxDir);
+    allTools.push(...sandboxTools);
+    logger.info(`Sandbox tools enabled at ${config.sandboxDir}`);
+  }
 
   // Load MCP tools if enabled (optional)
   if (config.mcp?.enabled && config.mcp.servers.length > 0) {

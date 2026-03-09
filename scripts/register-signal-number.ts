@@ -82,6 +82,10 @@ async function registerWithCaptcha(
     if (response.status === 400 && text.includes('Captcha required')) {
       throw new Error('CAPTCHA_REQUIRED');
     }
+    // 409 AlreadyVerified means the number is already registered - that's success!
+    if (text.includes('409') || text.includes('AlreadyVerified')) {
+      throw new Error('ALREADY_REGISTERED');
+    }
     throw new Error(`Registration failed (${response.status}): ${text}`);
   }
 
@@ -114,27 +118,86 @@ async function register(
     if (response.status === 400 && text.includes('Captcha required')) {
       throw new Error('CAPTCHA_REQUIRED');
     }
+    // 409 AlreadyVerified means the number is already registered - that's success!
+    if (text.includes('409') || text.includes('AlreadyVerified')) {
+      throw new Error('ALREADY_REGISTERED');
+    }
     throw new Error(`Registration failed (${response.status}): ${text}`);
   }
 
   return text ? JSON.parse(text) : {};
 }
 
-async function verify(phoneNumber: string, code: string): Promise<any> {
+function showSuccessMessage(phoneNumber: string) {
+  console.log(`${GREEN}✓ Registration successful!${NC}`);
+  console.log('');
+  console.log(`${GREEN}═══════════════════════════════════════${NC}`);
+  console.log(`${GREEN}✓ ${phoneNumber} is now registered${NC}`);
+  console.log(`${GREEN}═══════════════════════════════════════${NC}`);
+  console.log('');
+  console.log(`${BLUE}Next steps:${NC}`);
+  console.log(`  1. Add this number to your .env file:`);
+  console.log(`     ${CYAN}SIGNAL_PHONE_NUMBER=${phoneNumber}${NC}`);
+  console.log(`  2. Start your bot:`);
+  console.log(`     ${CYAN}npm start${NC}`);
+  console.log('');
+}
+
+async function checkIfRegistered(phoneNumber: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_URL}/v1/accounts`);
+    if (response.ok) {
+      const accounts = await response.json();
+      return accounts.some((acc: string) => acc === phoneNumber);
+    }
+  } catch {
+    // Ignore errors, we'll find out during registration
+  }
+  return false;
+}
+
+async function verify(phoneNumber: string, code: string, retries: number = 2): Promise<any> {
   console.log(`${BLUE}🔐 Verifying code...${NC}`);
 
-  const response = await fetch(
-    `${API_URL}/v1/register/${encodeURIComponent(phoneNumber)}/verify/${encodeURIComponent(code)}`,
-    { method: 'POST' }
-  );
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(
+        `${API_URL}/v1/register/${encodeURIComponent(phoneNumber)}/verify/${encodeURIComponent(code)}`,
+        { method: 'POST' }
+      );
 
-  const text = await response.text();
+      const text = await response.text();
 
-  if (!response.ok) {
-    throw new Error(`Verification failed (${response.status}): ${text}`);
+      if (!response.ok) {
+        // 499 is Signal's "client cancelled" / timeout - might have actually succeeded
+        if (text.includes('499')) {
+          console.log(`${YELLOW}⚠ Signal server timeout, checking if registration succeeded...${NC}`);
+          await new Promise(r => setTimeout(r, 2000));
+
+          // Check if we're actually registered despite the timeout
+          if (await checkIfRegistered(phoneNumber)) {
+            console.log(`${GREEN}✓ Registration confirmed despite timeout${NC}`);
+            return { alreadyRegistered: true };
+          }
+
+          if (attempt < retries) {
+            console.log(`${YELLOW}⚠ Retrying verification (${attempt + 1}/${retries})...${NC}`);
+            continue;
+          }
+        }
+        throw new Error(`Verification failed (${response.status}): ${text}`);
+      }
+
+      return text ? JSON.parse(text) : {};
+    } catch (error: any) {
+      if (error.message?.includes('fetch') && attempt < retries) {
+        console.log(`${YELLOW}⚠ Network error, retrying (${attempt + 1}/${retries})...${NC}`);
+        await new Promise(r => setTimeout(r, 2000));
+        continue;
+      }
+      throw error;
+    }
   }
-
-  return text ? JSON.parse(text) : {};
 }
 
 async function main() {
@@ -209,6 +272,14 @@ async function main() {
     }
 
   } catch (error: any) {
+    if (error.message === 'ALREADY_REGISTERED') {
+      console.log(`${GREEN}✓ This number is already registered!${NC}`);
+      console.log('');
+      showSuccessMessage(phoneNumber);
+      rl.close();
+      return;
+    }
+
     if (error.message === 'CAPTCHA_REQUIRED') {
       console.log(`${YELLOW}⚠ Captcha required for registration${NC}`);
       console.log('');
@@ -234,6 +305,13 @@ async function main() {
           console.log(`${YELLOW}📱 Check your phone for an SMS with the verification code${NC}`);
         }
       } catch (captchaError: any) {
+        if (captchaError.message === 'ALREADY_REGISTERED') {
+          console.log(`${GREEN}✓ This number is already registered!${NC}`);
+          console.log('');
+          showSuccessMessage(phoneNumber);
+          rl.close();
+          return;
+        }
         console.error(`${RED}✗ ${captchaError.message}${NC}`);
         process.exit(1);
       }
@@ -243,34 +321,44 @@ async function main() {
     }
   }
 
-  // Get verification code
-  const code = await question(`${BLUE}Enter the 6-digit verification code: ${NC}`);
-  console.log('');
+  // Get verification code with retry loop
+  let verified = false;
+  let attempts = 0;
+  const maxAttempts = 3;
 
-  try {
-    await verify(phoneNumber, code.trim());
-    console.log(`${GREEN}✓ Registration successful!${NC}`);
-    console.log('');
-    console.log(`${GREEN}═══════════════════════════════════════${NC}`);
-    console.log(`${GREEN}✓ ${phoneNumber} is now registered${NC}`);
-    console.log(`${GREEN}═══════════════════════════════════════${NC}`);
-    console.log('');
-    console.log(`${BLUE}Next steps:${NC}`);
-    console.log(`  1. Add this number to your .env file:`);
-    console.log(`     ${CYAN}SIGNAL_PHONE_NUMBER=${phoneNumber}${NC}`);
-    console.log(`  2. Start your bot:`);
-    console.log(`     ${CYAN}npm start${NC}`);
+  while (!verified && attempts < maxAttempts) {
+    const code = await question(`${BLUE}Enter the 6-digit verification code: ${NC}`);
     console.log('');
 
-  } catch (error: any) {
-    console.error(`${RED}✗ ${error.message}${NC}`);
-    console.log('');
-    console.log(`${YELLOW}Common issues:${NC}`);
-    console.log(`  - Code expired (codes are time-limited)`);
-    console.log(`  - Wrong code entered`);
-    console.log(`  - Network/API issues`);
-    console.log('');
-    process.exit(1);
+    try {
+      await verify(phoneNumber, code.trim());
+      verified = true;
+      showSuccessMessage(phoneNumber);
+
+    } catch (error: any) {
+      attempts++;
+      console.error(`${RED}✗ ${error.message}${NC}`);
+      console.log('');
+
+      if (attempts < maxAttempts) {
+        // Check if it's a transient error vs wrong code
+        if (error.message.includes('499') || error.message.includes('timeout') || error.message.includes('network')) {
+          console.log(`${YELLOW}This looks like a server issue. Try entering the same code again.${NC}`);
+        } else {
+          console.log(`${YELLOW}You can try again (${maxAttempts - attempts} attempts remaining)${NC}`);
+          console.log(`${YELLOW}If code expired, request a new one by restarting the script.${NC}`);
+        }
+        console.log('');
+      } else {
+        console.log(`${RED}Maximum attempts reached.${NC}`);
+        console.log(`${YELLOW}Common issues:${NC}`);
+        console.log(`  - Code expired (codes are time-limited)`);
+        console.log(`  - Wrong code entered`);
+        console.log(`  - Signal server issues (try again later)`);
+        console.log('');
+        process.exit(1);
+      }
+    }
   }
 
   rl.close();

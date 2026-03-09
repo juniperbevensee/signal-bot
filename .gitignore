@@ -6,8 +6,12 @@ dist/
 
 # Environment variables
 .env
-.env.*
 .env.local
+.env.*.local
+# Ignore .env.bot* files but not .env.example or .env.*.example
+.env.bot*
+!.env.*.example
+!.env.example
 
 # Database files
 data/
