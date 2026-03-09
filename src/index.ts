@@ -16,6 +16,8 @@ import { createSandboxTools } from './tools/sandbox-fs';
 import { createBrowserTools } from './tools/browser';
 import { createLogTools } from './tools/logs';
 import { statsTools, chartTools, textTools, dataWranglingTools } from './tools/datascience';
+import { createOpenMeasuresTools } from './tools/open-measures';
+import { createDiscordTools } from './tools/discord';
 import { TaskScheduler } from './scheduler/task-scheduler';
 import { createBuiltInTasks } from './scheduler/tasks';
 import { createApp, startServer } from './server/app';
@@ -127,6 +129,23 @@ Current chat context will be provided with each message.`;
   ];
 
   logger.info(`Data science tools loaded: ${statsTools.length + chartTools.length + textTools.length + dataWranglingTools.length} tools`);
+
+  // Add Open Measures tools if API key is configured
+  if (config.integrations?.openMeasures?.apiKey) {
+    const openMeasuresTools = createOpenMeasuresTools(config.integrations.openMeasures.apiKey);
+    allTools.push(...openMeasuresTools);
+    logger.info(`Open Measures tools loaded: ${openMeasuresTools.length} tools`);
+  }
+
+  // Add Discord tools if token is configured
+  if (config.integrations?.discord?.token) {
+    const discordTools = createDiscordTools(
+      config.integrations.discord.token,
+      config.integrations.discord.guildId
+    );
+    allTools.push(...discordTools);
+    logger.info(`Discord tools loaded: ${discordTools.length} tools`);
+  }
 
   // Add sandbox tools if configured (defaults to workspaceDir for backward compatibility)
   const sandboxDir = config.sandboxDir || config.workspaceDir;
