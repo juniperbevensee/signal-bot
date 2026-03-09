@@ -38,13 +38,18 @@ export function createApp(dependencies: ServerDependencies, options: ServerOptio
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // Request logging
+  // Request logging (skip noisy polling endpoints)
   app.use((req, res, next) => {
-    const start = Date.now();
-    res.on('finish', () => {
-      const duration = Date.now() - start;
-      console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} ${res.statusCode} ${duration}ms`);
-    });
+    const skipPaths = ['/health', '/dashboard', '/performance', '/api/stats'];
+    const shouldLog = !skipPaths.includes(req.path);
+
+    if (shouldLog) {
+      const start = Date.now();
+      res.on('finish', () => {
+        const duration = Date.now() - start;
+        console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} ${res.statusCode} ${duration}ms`);
+      });
+    }
     next();
   });
 

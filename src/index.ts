@@ -15,6 +15,7 @@ import { createChatHistoryTools } from './tools/chat-history';
 import { createSandboxTools } from './tools/sandbox-fs';
 import { createBrowserTools } from './tools/browser';
 import { createLogTools } from './tools/logs';
+import { statsTools, chartTools, textTools, dataWranglingTools } from './tools/datascience';
 import { TaskScheduler } from './scheduler/task-scheduler';
 import { createBuiltInTasks } from './scheduler/tasks';
 import { createApp, startServer } from './server/app';
@@ -118,8 +119,14 @@ Current chat context will be provided with each message.`;
     ...memoryTools,
     ...browserTools,
     ...logTools,
+    ...statsTools,
+    ...chartTools,
+    ...textTools,
+    ...dataWranglingTools,
     // Note: chat history tools are created per-message with current chat ID
   ];
+
+  logger.info(`Data science tools loaded: ${statsTools.length + chartTools.length + textTools.length + dataWranglingTools.length} tools`);
 
   // Add sandbox tools if configured (defaults to workspaceDir for backward compatibility)
   const sandboxDir = config.sandboxDir || config.workspaceDir;
