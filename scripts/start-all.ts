@@ -557,6 +557,20 @@ async function startAll(skipDocker: boolean) {
 
   closeReadline();
 
+  // Build web UI
+  log(CYAN, '🔨', 'Building web UI...');
+  try {
+    execSync('npm run build:web', {
+      cwd: ROOT_DIR,
+      stdio: 'inherit',
+    });
+    log(GREEN, '✓', 'Web UI built successfully');
+  } catch (error) {
+    log(RED, '✗', 'Failed to build web UI');
+    log(YELLOW, '⚠', 'Continuing without web UI...');
+  }
+  console.log();
+
   // Generate ecosystem config for pm2
   const ecosystemPath = join(ROOT_DIR, 'ecosystem.config.cjs');
   const ecosystemConfig = generateEcosystemConfig(envFiles);
@@ -583,6 +597,9 @@ async function startAll(skipDocker: boolean) {
   execSync('npx pm2 status', { cwd: ROOT_DIR, stdio: 'inherit' });
 
   console.log();
+  log(CYAN, '🌐', 'Web UI available at:');
+  console.log(`   ${GREEN}http://localhost:3000${NC}\n`);
+
   log(CYAN, '📋', 'Commands:');
   console.log(`   ${CYAN}npm run logs${NC}       View combined logs (all bots)`);
   console.log(`   ${CYAN}npm run status${NC}     Show bot status`);
