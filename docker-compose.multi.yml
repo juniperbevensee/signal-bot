@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  # First Signal API instance (Port 8080)
+  signal-api-1:
+    image: bbernhard/signal-cli-rest-api:latest
+    container_name: signal-api-1
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./signal-data-1:/home/.local/share/signal-cli
+    environment:
+      - MODE=native
+    restart: unless-stopped
+
+  # Second Signal API instance (Port 8081)
+  signal-api-2:
+    image: bbernhard/signal-cli-rest-api:latest
+    container_name: signal-api-2
+    ports:
+      - "8081:8080"  # External port 8081 maps to internal 8080
+    volumes:
+      - ./signal-data-2:/home/.local/share/signal-cli
+    environment:
+      - MODE=native
+    restart: unless-stopped
+
+  # Optional: Third instance (Port 8082)
+  signal-api-3:
+    image: bbernhard/signal-cli-rest-api:latest
+    container_name: signal-api-3
+    ports:
+      - "8082:8080"
+    volumes:
+      - ./signal-data-3:/home/.local/share/signal-cli
+    environment:
+      - MODE=native
+    restart: unless-stopped

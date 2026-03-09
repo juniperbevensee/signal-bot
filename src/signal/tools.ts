@@ -1,0 +1,243 @@
+/**
+ * Signal tools for the bot
+ * Adapted from cantrip-integrations, simplified for direct SignalContext injection
+ */
+
+import { z } from 'zod';
+import { tool, type Tool } from '../agent/tools';
+import type { SignalContext } from './context';
+import { validateFilePath, isDangerousExtension } from '../utils/security';
+
+/**
+ * Create Signal tools with injected SignalContext
+ */
+export function createSignalTools(ctx: SignalContext, workspaceDir?: string): Tool[] {
+  const signal_send_message = tool(
+    'Send a Signal message to one or more phone numbers. Can include image/file attachments. Use E.164 format (e.g., +14155551234).',
+    async ({
+      recipients,
+      message,
+      attachment_path,
+    }: {
+      recipients: string[];
+      message: string;
+      attachment_path?: string;
+    }) => {
+      let base64Attachments: string[] | undefined;
+
+      if (attachment_path) {
+        if (!workspaceDir) {
+          return JSON.stringify({
+            success: false,
+            error: 'File attachments disabled: WORKSPACE_DIR not configured',
+          }, null, 2);
+        }
+
+        // Security: Validate file path
+        try {
+          const validatedPath = validateFilePath(attachment_path, workspaceDir);
+
+          // Security: Block dangerous file extensions
+          if (isDangerousExtension(validatedPath)) {
+            return JSON.stringify({
+              success: false,
+              error: `Security: File type not allowed for safety reasons`,
+            }, null, 2);
+          }
+
+          const fs = await import('fs/promises');
+          const buffer = await fs.readFile(validatedPath);
+          base64Attachments = [buffer.toString('base64')];
+        } catch (error) {
+          return JSON.stringify({
+            success: false,
+            error: error instanceof Error ? error.message : 'File access error',
+          }, null, 2);
+        }
+      }
+
+      const result = await ctx.sendMessage(recipients, message, { base64Attachments });
+      return JSON.stringify(
+        {
+          success: true,
+          recipients,
+          timestamp: Date.now(),
+          attachment_sent: !!attachment_path,
+          ...result,
+        },
+        null,
+        2
+      );
+    },
+    {
+      name: 'signal_send_message',
+      zodSchema: z.object({
+        recipients: z
+          .array(z.string())
+          .describe('Phone numbers in E.164 format (e.g., +14155551234)'),
+        message: z.string().describe('Message text to send'),
+        attachment_path: z
+          .string()
+          .optional()
+          .describe('Optional: path to image/file to attach (e.g., /path/to/chart.png)'),
+      }),
+    }
+  );
+
+  const signal_send_group_message = tool(
+    'Send a Signal message to a group. Can include image/file attachments. Use signal_list_groups to get group IDs.',
+    async ({
+      group_id,
+      message,
+      attachment_path,
+    }: {
+      group_id: string;
+      message: string;
+      attachment_path?: string;
+    }) => {
+      let base64Attachments: string[] | undefined;
+
+      if (attachment_path) {
+        if (!workspaceDir) {
+          return JSON.stringify({
+            success: false,
+            error: 'File attachments disabled: WORKSPACE_DIR not configured',
+          }, null, 2);
+        }
+
+        // Security: Validate file path
+        try {
+          const validatedPath = validateFilePath(attachment_path, workspaceDir);
+
+          // Security: Block dangerous file extensions
+          if (isDangerousExtension(validatedPath)) {
+            return JSON.stringify({
+              success: false,
+              error: `Security: File type not allowed for safety reasons`,
+            }, null, 2);
+          }
+
+          const fs = await import('fs/promises');
+          const buffer = await fs.readFile(validatedPath);
+          base64Attachments = [buffer.toString('base64')];
+        } catch (error) {
+          return JSON.stringify({
+            success: false,
+            error: error instanceof Error ? error.message : 'File access error',
+          }, null, 2);
+        }
+      }
+
+      const result = await ctx.sendGroupMessage(group_id, message, { base64Attachments });
+      return JSON.stringify(
+        {
+          success: true,
+          group_id,
+          timestamp: Date.now(),
+          attachment_sent: !!attachment_path,
+          ...result,
+        },
+        null,
+        2
+      );
+    },
+    {
+      name: 'signal_send_group_message',
+      zodSchema: z.object({
+        group_id: z.string().describe('Group ID (from signal_list_groups)'),
+        message: z.string().describe('Message text to send'),
+        attachment_path: z
+          .string()
+          .optional()
+          .describe('Optional: path to image/file to attach (e.g., /path/to/chart.png)'),
+      }),
+    }
+  );
+
+  const signal_list_groups = tool(
+    "List all Signal groups you're a member of.",
+    async () => {
+      const groups = await ctx.listGroups();
+
+      const formatted = groups.map((g) => ({
+        id: g.id,
+        name: g.name,
+        member_count: g.members.length,
+        admins: g.admins,
+        blocked: g.blocked,
+      }));
+
+      return JSON.stringify(
+        {
+          count: groups.length,
+          groups: formatted,
+        },
+        null,
+        2
+      );
+    },
+    {
+      name: 'signal_list_groups',
+      zodSchema: z.object({}),
+    }
+  );
+
+  const signal_send_reaction = tool(
+    'Send an emoji reaction to a Signal message. Use this to react to the current message you\'re responding to.',
+    async ({
+      recipient,
+      emoji,
+      target_timestamp,
+    }: {
+      recipient: string;
+      emoji: string;
+      target_timestamp: number;
+    }) => {
+      const result = await ctx.sendReaction(recipient, emoji, target_timestamp);
+      return JSON.stringify(
+        {
+          success: true,
+          recipient,
+          emoji,
+          target_timestamp,
+          ...result,
+        },
+        null,
+        2
+      );
+    },
+    {
+      name: 'signal_send_reaction',
+      zodSchema: z.object({
+        recipient: z.string().describe("Message sender's phone number (E.164 format) or UUID"),
+        emoji: z.string().describe('Emoji to react with'),
+        target_timestamp: z.number().describe('Timestamp of the message to react to'),
+      }),
+    }
+  );
+
+  const signal_get_identity = tool(
+    'Get the phone number this Signal bot is registered with.',
+    async () => {
+      return JSON.stringify(
+        {
+          phone_number: ctx.getPhoneNumber(),
+        },
+        null,
+        2
+      );
+    },
+    {
+      name: 'signal_get_identity',
+      zodSchema: z.object({}),
+    }
+  );
+
+  return [
+    signal_send_message,
+    signal_send_group_message,
+    signal_list_groups,
+    signal_send_reaction,
+    signal_get_identity,
+  ];
+}

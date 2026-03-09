@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment variables
+.env
+.env.*
+.env.local
+
+# Database files
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# Workspace
+workspace/
+workspace-*/
+
+# Memory files (optional - commit template but not user data)
+persistent_memory.md
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Signal registration data (contains phone numbers and keys)
+signal-data/
+signal-data-*/
+
+# Bot orchestrator
+.bot-pids
+
+# Temporary files
+tmp/
+temp/

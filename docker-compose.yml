@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  # Signal CLI REST API
+  signal-api:
+    image: bbernhard/signal-cli-rest-api:latest
+    container_name: signal-api
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./signal-data:/home/.local/share/signal-cli
+    environment:
+      - MODE=native
+    restart: unless-stopped
+
+  # Signal Bot (optional - can run on host instead)
+  bot:
+    build: .
+    container_name: signal-bot
+    depends_on:
+      - signal-api
+    volumes:
+      - ./data:/app/data
+      - ./workspace:/app/workspace
+      - ./.env:/app/.env:ro
+    environment:
+      - SIGNAL_API_URL=http://signal-api:8080
+      - DATABASE_PATH=/app/data/signal-bot.db
+      - WORKSPACE_DIR=/app/workspace
+    restart: unless-stopped
+    # Uncomment to run bot in container
+    # command: npm start
