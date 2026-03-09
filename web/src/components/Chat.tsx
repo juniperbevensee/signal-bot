@@ -134,39 +134,56 @@ function Chat() {
       {/* Sessions Sidebar */}
       <div className="w-64 card flex flex-col">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold">Sessions</h3>
-          <button onClick={handleNewChat} className="text-primary-600 hover:text-primary-700">
-            + New
+          <h3 className="section-title">Sessions</h3>
+          <button
+            onClick={handleNewChat}
+            className="flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            New
           </button>
         </div>
         <div className="flex-1 overflow-auto space-y-2">
           {sessions.map((session) => (
             <div
               key={session.id}
-              className={`p-3 rounded-lg cursor-pointer flex items-center justify-between group ${
+              className={`p-3 rounded-xl cursor-pointer flex items-center justify-between group transition-all duration-200 ${
                 currentSessionId === session.id
-                  ? 'bg-primary-100 border-primary-500'
-                  : 'hover:bg-gray-100'
+                  ? 'bg-primary-50 border border-primary-200'
+                  : 'hover:bg-sand-50 border border-transparent'
               }`}
               onClick={() => setCurrentSessionId(session.id)}
             >
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">Session {session.id.slice(0, 8)}</p>
-                <p className="text-xs text-gray-500">{session.messageCount} messages</p>
+                <p className={`text-sm font-medium truncate ${
+                  currentSessionId === session.id ? 'text-primary-700' : 'text-sand-800'
+                }`}>
+                  Session {session.id.slice(0, 8)}
+                </p>
+                <p className="text-xs text-sand-500">{session.messageCount} messages</p>
               </div>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   handleDeleteSession(session.id);
                 }}
-                className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-700 ml-2"
+                className="opacity-0 group-hover:opacity-100 text-sand-400 hover:text-red-500 ml-2 transition-all duration-200"
               >
-                ×
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
           ))}
           {sessions.length === 0 && (
-            <p className="text-sm text-gray-500 text-center py-4">No sessions yet</p>
+            <div className="empty-state py-8">
+              <svg className="w-8 h-8 text-sand-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+              </svg>
+              <p className="text-sm text-sand-500">No sessions yet</p>
+            </div>
           )}
         </div>
       </div>
@@ -175,22 +192,32 @@ function Chat() {
       <div className="flex-1 card flex flex-col">
         {/* Messages */}
         <div className="flex-1 overflow-auto mb-4 space-y-4">
+          {messages.length === 0 && !isStreaming && (
+            <div className="empty-state h-full">
+              <svg className="w-12 h-12 text-sand-200 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+              </svg>
+              <p className="text-sand-500">Start a conversation</p>
+              <p className="text-sm text-sand-400 mt-1">Send a message to begin chatting</p>
+            </div>
+          )}
+
           {messages.map((message) => (
             <div
               key={message.id}
               className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[70%] rounded-lg px-4 py-3 ${
+                className={`max-w-[70%] rounded-2xl px-4 py-3 ${
                   message.role === 'user'
                     ? 'bg-primary-600 text-white'
-                    : 'bg-gray-100 text-gray-900'
+                    : 'bg-sand-100 text-sand-900'
                 }`}
               >
                 <p className="whitespace-pre-wrap">{message.content}</p>
                 <p
-                  className={`text-xs mt-1 ${
-                    message.role === 'user' ? 'text-primary-100' : 'text-gray-500'
+                  className={`text-xs mt-2 ${
+                    message.role === 'user' ? 'text-primary-200' : 'text-sand-500'
                   }`}
                 >
                   {new Date(message.timestamp).toLocaleTimeString()}
@@ -202,10 +229,15 @@ function Chat() {
           {/* Streaming Message */}
           {isStreaming && streamingText && (
             <div className="flex justify-start">
-              <div className="max-w-[70%] rounded-lg px-4 py-3 bg-gray-100 text-gray-900">
+              <div className="max-w-[70%] rounded-2xl px-4 py-3 bg-sand-100 text-sand-900">
                 <p className="whitespace-pre-wrap">{streamingText}</p>
-                <div className="mt-2 flex items-center text-xs text-gray-500">
-                  <div className="animate-pulse">Typing...</div>
+                <div className="mt-2 flex items-center gap-2 text-xs text-sand-500">
+                  <div className="flex gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse" style={{ animationDelay: '0.2s' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse" style={{ animationDelay: '0.4s' }} />
+                  </div>
+                  <span>Typing</span>
                 </div>
               </div>
             </div>
@@ -214,11 +246,14 @@ function Chat() {
           {/* Tool Calls */}
           {toolCalls.length > 0 && (
             <div className="flex justify-start">
-              <div className="max-w-[70%] rounded-lg px-4 py-3 bg-blue-50 text-blue-900 border border-blue-200">
+              <div className="max-w-[70%] rounded-2xl px-4 py-3 bg-bark-50 text-bark-800 border border-bark-200">
                 {toolCalls.map((call, index) => (
-                  <p key={index} className="text-sm">
-                    🔧 {call}
-                  </p>
+                  <div key={index} className="flex items-center gap-2 text-sm">
+                    <svg className="w-4 h-4 text-bark-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" />
+                    </svg>
+                    <span>{call}</span>
+                  </div>
                 ))}
               </div>
             </div>
@@ -228,7 +263,7 @@ function Chat() {
         </div>
 
         {/* Input */}
-        <div className="flex gap-2">
+        <div className="flex gap-3 pt-4 border-t border-sand-100">
           <textarea
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
@@ -243,7 +278,19 @@ function Chat() {
             disabled={!inputValue.trim() || isStreaming}
             className="btn btn-primary self-end"
           >
-            {isStreaming ? 'Sending...' : 'Send'}
+            {isStreaming ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Sending</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                </svg>
+                <span>Send</span>
+              </div>
+            )}
           </button>
         </div>
       </div>

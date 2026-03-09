@@ -113,15 +113,23 @@ function Scheduler() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Loading...</div>
+        <div className="flex items-center gap-3 text-sand-500">
+          <div className="w-5 h-5 border-2 border-sand-300 border-t-primary-500 rounded-full animate-spin" />
+          <span>Loading tasks...</span>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="card">
-        <div className="text-red-600">Error: {error}</div>
+      <div className="card bg-red-50 border-red-100">
+        <div className="flex items-center gap-3 text-red-700">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          </svg>
+          <span>Error: {error}</span>
+        </div>
       </div>
     );
   }
@@ -130,31 +138,37 @@ function Scheduler() {
     <div className="h-full flex gap-6">
       {/* Tasks List */}
       <div className="w-2/5 card">
-        <h3 className="text-lg font-semibold mb-4">Scheduled Tasks</h3>
-        <div className="space-y-2">
+        <h3 className="section-title mb-4">Scheduled Tasks</h3>
+        <div className="space-y-3">
           {tasks.map((task) => (
             <div
               key={task.id}
-              className={`p-4 rounded-lg border cursor-pointer transition-colors ${
+              className={`p-4 rounded-xl border cursor-pointer transition-all duration-200 ${
                 selectedTask?.id === task.id
-                  ? 'border-primary-500 bg-primary-50'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  ? 'border-primary-300 bg-primary-50'
+                  : 'border-sand-200 hover:border-sand-300 hover:bg-sand-50'
               }`}
               onClick={() => setSelectedTask(task)}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <h4 className="font-medium text-gray-900">{task.name}</h4>
-                  <p className="text-sm text-gray-600 mt-1">{task.description}</p>
-                  <p className="text-xs text-gray-500 mt-2 font-mono">{task.schedule}</p>
+                  <h4 className={`font-medium ${
+                    selectedTask?.id === task.id ? 'text-primary-900' : 'text-sand-900'
+                  }`}>
+                    {task.name}
+                  </h4>
+                  <p className="text-sm text-sand-600 mt-1">{task.description}</p>
+                  <p className="text-xs text-sand-500 mt-2 font-mono bg-sand-100 px-2 py-1 rounded inline-block">
+                    {task.schedule}
+                  </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 ml-3">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleToggleEnabled(task);
                     }}
-                    className={`badge ${task.enabled ? 'badge-success' : 'badge-error'}`}
+                    className={`badge transition-colors ${task.enabled ? 'badge-success' : 'badge-error'}`}
                   >
                     {task.enabled ? 'Enabled' : 'Disabled'}
                   </button>
@@ -163,7 +177,12 @@ function Scheduler() {
             </div>
           ))}
           {tasks.length === 0 && (
-            <p className="text-sm text-gray-500 text-center py-8">No scheduled tasks</p>
+            <div className="empty-state py-12">
+              <svg className="w-10 h-10 text-sand-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-sand-500">No scheduled tasks</p>
+            </div>
           )}
         </div>
       </div>
@@ -173,29 +192,32 @@ function Scheduler() {
         {selectedTask ? (
           <>
             <div className="card">
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start justify-between mb-6">
                 <div>
-                  <h3 className="text-xl font-semibold">{selectedTask.name}</h3>
-                  <p className="text-gray-600 mt-1">{selectedTask.description}</p>
+                  <h3 className="text-xl font-semibold text-sand-900">{selectedTask.name}</h3>
+                  <p className="text-sand-600 mt-1">{selectedTask.description}</p>
                 </div>
                 <button
                   onClick={() => handleExecuteTask(selectedTask.id)}
                   className="btn btn-primary"
                 >
+                  <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+                  </svg>
                   Execute Now
                 </button>
               </div>
 
-              <div className="space-y-3 border-t border-gray-200 pt-4">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Status</span>
+              <div className="space-y-4 border-t border-sand-100 pt-6">
+                <div className="flex justify-between items-center py-2 border-b border-sand-100">
+                  <span className="text-sand-600">Status</span>
                   <span className={`badge ${selectedTask.enabled ? 'badge-success' : 'badge-error'}`}>
                     {selectedTask.enabled ? 'Enabled' : 'Disabled'}
                   </span>
                 </div>
 
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Schedule</span>
+                <div className="flex justify-between items-center py-2 border-b border-sand-100">
+                  <span className="text-sand-600">Schedule</span>
                   <div className="flex items-center gap-2">
                     {isEditing ? (
                       <>
@@ -207,11 +229,11 @@ function Scheduler() {
                             handleValidateSchedule(e.target.value);
                           }}
                           className={`input font-mono text-sm w-40 ${
-                            scheduleValid === false ? 'border-red-500' : ''
+                            scheduleValid === false ? 'input-error' : ''
                           }`}
                           placeholder="* * * * *"
                         />
-                        <button onClick={handleSaveSchedule} className="btn btn-primary text-sm">
+                        <button onClick={handleSaveSchedule} className="btn btn-primary btn-sm">
                           Save
                         </button>
                         <button
@@ -220,20 +242,20 @@ function Scheduler() {
                             setEditingSchedule('');
                             setScheduleValid(null);
                           }}
-                          className="btn btn-secondary text-sm"
+                          className="btn btn-secondary btn-sm"
                         >
                           Cancel
                         </button>
                       </>
                     ) : (
                       <>
-                        <span className="font-mono text-sm">{selectedTask.schedule}</span>
+                        <span className="font-mono text-sm bg-sand-100 px-2 py-1 rounded">{selectedTask.schedule}</span>
                         <button
                           onClick={() => {
                             setIsEditing(true);
                             setEditingSchedule(selectedTask.schedule);
                           }}
-                          className="text-primary-600 hover:text-primary-700 text-sm"
+                          className="text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors"
                         >
                           Edit
                         </button>
@@ -242,62 +264,73 @@ function Scheduler() {
                   </div>
                 </div>
 
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Last Run</span>
-                  <span className="text-sm">{formatDate(selectedTask.lastRun)}</span>
+                <div className="flex justify-between items-center py-2 border-b border-sand-100">
+                  <span className="text-sand-600">Last Run</span>
+                  <span className="text-sm text-sand-900">{formatDate(selectedTask.lastRun)}</span>
                 </div>
 
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Next Run</span>
-                  <span className="text-sm">{formatDate(selectedTask.nextRun)}</span>
+                <div className="flex justify-between items-center py-2 border-b border-sand-100">
+                  <span className="text-sand-600">Next Run</span>
+                  <span className="text-sm text-sand-900">{formatDate(selectedTask.nextRun)}</span>
                 </div>
 
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Created</span>
-                  <span className="text-sm">{formatDate(selectedTask.createdAt)}</span>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sand-600">Created</span>
+                  <span className="text-sm text-sand-900">{formatDate(selectedTask.createdAt)}</span>
                 </div>
               </div>
             </div>
 
             {/* Execution History */}
             <div className="card">
-              <h3 className="text-lg font-semibold mb-4">Execution History</h3>
-              <div className="space-y-2">
+              <h3 className="section-title mb-4">Execution History</h3>
+              <div className="space-y-3">
                 {history.map((entry) => (
                   <div
                     key={entry.id}
-                    className="p-3 rounded-lg border border-gray-200 hover:bg-gray-50"
+                    className="p-4 rounded-xl border border-sand-200 hover:bg-sand-50 transition-colors"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <span className={`badge ${entry.success ? 'badge-success' : 'badge-error'}`}>
                           {entry.success ? 'Success' : 'Failed'}
                         </span>
-                        <span className="text-sm text-gray-600">
+                        <span className="text-sm text-sand-600">
                           {formatDate(entry.executedAt)}
                         </span>
                       </div>
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-sand-500 font-mono">
                         {formatDuration(entry.duration)}
                       </span>
                     </div>
                     {entry.error && (
-                      <p className="text-sm text-red-600 mt-2 font-mono">{entry.error}</p>
+                      <p className="text-sm text-red-600 mt-3 font-mono bg-red-50 p-2 rounded-lg">{entry.error}</p>
                     )}
                     {entry.result && (
-                      <p className="text-sm text-gray-600 mt-2">{entry.result}</p>
+                      <p className="text-sm text-sand-600 mt-3">{entry.result}</p>
                     )}
                   </div>
                 ))}
                 {history.length === 0 && (
-                  <p className="text-sm text-gray-500 text-center py-4">No execution history</p>
+                  <div className="empty-state py-8">
+                    <svg className="w-8 h-8 text-sand-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-sm text-sand-500">No execution history</p>
+                  </div>
                 )}
               </div>
             </div>
           </>
         ) : (
-          <div className="card text-center py-12">
-            <p className="text-gray-500">Select a task to view details</p>
+          <div className="card">
+            <div className="empty-state py-16">
+              <svg className="w-12 h-12 text-sand-200 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-sand-500">Select a task to view details</p>
+              <p className="text-sm text-sand-400 mt-1">Choose from the list on the left</p>
+            </div>
           </div>
         )}
       </div>
