@@ -35,7 +35,13 @@ export function createSignalTools(ctx: SignalContext, workspaceDir?: string): To
 
         // Security: Validate file path
         try {
-          const validatedPath = validateFilePath(attachment_path, workspaceDir);
+          // If path is relative, treat it as relative to workspace directory
+          const path = await import('path');
+          const resolvedPath = path.isAbsolute(attachment_path)
+            ? attachment_path
+            : path.join(workspaceDir, attachment_path);
+
+          const validatedPath = validateFilePath(resolvedPath, workspaceDir);
 
           // Security: Block dangerous file extensions
           if (isDangerousExtension(validatedPath)) {
@@ -79,7 +85,7 @@ export function createSignalTools(ctx: SignalContext, workspaceDir?: string): To
         attachment_path: z
           .string()
           .optional()
-          .describe('Optional: path to image/file to attach (e.g., /path/to/chart.png)'),
+          .describe('Optional: path to image/file to attach, relative to workspace/sandbox (e.g., "chart.png")'),
       }),
     }
   );
@@ -107,7 +113,13 @@ export function createSignalTools(ctx: SignalContext, workspaceDir?: string): To
 
         // Security: Validate file path
         try {
-          const validatedPath = validateFilePath(attachment_path, workspaceDir);
+          // If path is relative, treat it as relative to workspace directory
+          const path = await import('path');
+          const resolvedPath = path.isAbsolute(attachment_path)
+            ? attachment_path
+            : path.join(workspaceDir, attachment_path);
+
+          const validatedPath = validateFilePath(resolvedPath, workspaceDir);
 
           // Security: Block dangerous file extensions
           if (isDangerousExtension(validatedPath)) {
@@ -149,7 +161,7 @@ export function createSignalTools(ctx: SignalContext, workspaceDir?: string): To
         attachment_path: z
           .string()
           .optional()
-          .describe('Optional: path to image/file to attach (e.g., /path/to/chart.png)'),
+          .describe('Optional: path to image/file to attach, relative to workspace/sandbox (e.g., "chart.png")'),
       }),
     }
   );
@@ -276,8 +288,14 @@ export function createSignalTools(ctx: SignalContext, workspaceDir?: string): To
             }, null, 2);
           }
 
+          // If path is relative, treat it as relative to workspace directory
+          const path = await import('path');
+          const resolvedPath = path.isAbsolute(avatar_path)
+            ? avatar_path
+            : path.join(workspaceDir, avatar_path);
+
           // Security: Validate file path
-          const validatedPath = validateFilePath(avatar_path, workspaceDir);
+          const validatedPath = validateFilePath(resolvedPath, workspaceDir);
 
           // Only allow image files
           const ext = validatedPath.toLowerCase().split('.').pop();
@@ -328,7 +346,7 @@ export function createSignalTools(ctx: SignalContext, workspaceDir?: string): To
       name: 'signal_update_profile',
       zodSchema: z.object({
         name: z.string().optional().describe('The new profile name to set'),
-        avatar_path: z.string().optional().describe('Path to image file for profile avatar (in workspace directory)'),
+        avatar_path: z.string().optional().describe('Path to image file for profile avatar (relative to workspace/sandbox directory, e.g., "avatar.png")'),
       }),
     }
   );

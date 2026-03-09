@@ -161,6 +161,10 @@ export class SignalListener {
     try {
       const messages = await this.signalContext.receiveMessages();
 
+      if (messages.length > 0) {
+        this.logger.debug(`Received ${messages.length} message(s) from Signal API`);
+      }
+
       for (const msg of messages) {
         await this.handleMessage(msg);
       }
@@ -206,17 +210,27 @@ export class SignalListener {
     const isGroup = !!data.groupInfo;
     const groupId = data.groupInfo?.groupId;
 
+    // Log ALL messages at INFO level (before access control) - like integrations-signal
+    const groupPrefix = isGroup ? `[Group: ${groupId}] ` : '';
+    this.logger.info(`${groupPrefix}Message from ${senderName}: "${messageText.slice(0, 50)}..."`);
+
     // Check access control
     if (isGroup) {
       if (!this.isGroupAllowed(groupId!)) {
-        this.logger.debug(`Ignoring message from unauthorized group: ${groupId}`);
+        this.logger.info(`  └─ Ignoring (unauthorized group)`);
         return;
       }
     } else {
       if (!this.isSenderAllowed(senderUuid, senderPhone)) {
-        this.logger.debug(`Ignoring message from unauthorized sender: ${senderUuid}`);
+        this.logger.info(`  └─ Ignoring (unauthorized sender)`);
         return;
       }
+    }
+
+    // In groups, only respond if mentioned
+    if (isGroup && !this.isBotMentioned(messageText)) {
+      this.logger.info(`  └─ Skipping (bot not mentioned)`);
+      return;
     }
 
     // Check rate limit
@@ -243,13 +257,7 @@ export class SignalListener {
       return;
     }
 
-    // In groups, only respond if mentioned
-    if (isGroup && !this.isBotMentioned(messageText)) {
-      this.logger.debug(`Skipping group message (bot not mentioned)`);
-      return;
-    }
-
-    this.logger.info(`Message from ${senderName}: "${messageText.slice(0, 50)}..."`);
+    this.logger.info(`  └─ Responding...`);
 
     // Acquire mutex
     const previousLock = this.requestLock;
@@ -359,7 +367,7 @@ Message: ${cleanedMessage}`;
         }
       }
 
-      this.logger.info(`Responded to ${senderName}`);
+      this.logger.info(`  └─ Response sent`);
     } catch (error) {
       this.logger.error('Error handling message:', error);
 
