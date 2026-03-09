@@ -293,7 +293,7 @@ export class SignalListener {
 [CONTEXT - You are responding to a Signal message]
 - From: ${senderName}
 - ID: ${senderId}
-${isGroup ? `- Group ID: ${groupId}` : '- Direct message'}
+${isGroup ? `- Group ID: ${groupId}\n- Database Chat ID: ${dbChatId} (IMPORTANT: Use this chat_id when calling log tools to scope to this group only)` : '- Direct message (you may access logs across all groups)'}
 - Timestamp: ${new Date(env.timestamp).toISOString()}
 - You can react using signal_send_reaction with recipient=${senderId}, target_timestamp=${env.timestamp}
 

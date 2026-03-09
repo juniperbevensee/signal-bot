@@ -20,10 +20,11 @@ export function createLogTools(db: BetterSqlite3): Tool[] {
   // Get Recent Activity (from messages table)
   tools.push(
     tool(
-      'Get recent message history showing conversations.',
+      'Get recent message history showing conversations. IMPORTANT: In group chats, always provide the chat_id to scope logs to only that group. In DMs with approved users, omit chat_id to see all logs.',
       async (args) => {
         const limit = Math.min(args.limit || 20, 100);
-        const stmt = db.prepare(`
+
+        let query = `
           SELECT
             m.id,
             m.timestamp,
@@ -34,11 +35,20 @@ export function createLogTools(db: BetterSqlite3): Tool[] {
             c.signal_chat_id
           FROM messages m
           JOIN chats c ON m.chat_id = c.id
-          ORDER BY m.timestamp DESC
-          LIMIT ?
-        `);
+        `;
+        const params: any[] = [];
 
-        const logs = stmt.all(limit) as any[];
+        // Filter by chat_id if provided (for privacy in group chats)
+        if (args.chat_id) {
+          query += ` WHERE c.id = ?`;
+          params.push(args.chat_id);
+        }
+
+        query += ` ORDER BY m.timestamp DESC LIMIT ?`;
+        params.push(limit);
+
+        const stmt = db.prepare(query);
+        const logs = stmt.all(...params) as any[];
 
         if (logs.length === 0) {
           return 'No message history found';
@@ -59,6 +69,7 @@ export function createLogTools(db: BetterSqlite3): Tool[] {
       {
         name: 'logs_recent_activity',
         zodSchema: z.object({
+          chat_id: z.string().optional().describe('Database chat ID to scope logs to (REQUIRED in group chats for privacy, omit in DMs to see all)'),
           limit: z.number().optional().describe('Maximum number of logs to return (default 20, max 100)'),
         }),
       }
@@ -68,23 +79,34 @@ export function createLogTools(db: BetterSqlite3): Tool[] {
   // Get Tool Usage (from activity_logs trace data)
   tools.push(
     tool(
-      'Get logs of recent activity traces including tool calls.',
+      'Get logs of recent activity traces including tool calls. IMPORTANT: In group chats, always provide the chat_id to scope logs to only that group. In DMs with approved users, omit chat_id to see all logs.',
       async (args) => {
         const limit = Math.min(args.limit || 10, 50);
-        const stmt = db.prepare(`
-          SELECT
-            id,
-            created_at,
-            log_type,
-            content,
-            trace_id
-          FROM activity_logs
-          WHERE log_type IN ('tool_call', 'tool_result')
-          ORDER BY created_at DESC
-          LIMIT ?
-        `);
 
-        const logs = stmt.all(limit) as any[];
+        let query = `
+          SELECT
+            al.id,
+            al.created_at,
+            al.log_type,
+            al.content,
+            al.trace_id,
+            al.chat_id
+          FROM activity_logs al
+          WHERE al.log_type IN ('tool_call', 'tool_result')
+        `;
+        const params: any[] = [];
+
+        // Filter by chat_id if provided (for privacy in group chats)
+        if (args.chat_id) {
+          query += ` AND al.chat_id = ?`;
+          params.push(args.chat_id);
+        }
+
+        query += ` ORDER BY al.created_at DESC LIMIT ?`;
+        params.push(limit);
+
+        const stmt = db.prepare(query);
+        const logs = stmt.all(...params) as any[];
 
         if (logs.length === 0) {
           return 'No activity traces found. This likely means activity logging is disabled.';
@@ -111,6 +133,7 @@ export function createLogTools(db: BetterSqlite3): Tool[] {
       {
         name: 'logs_tool_usage',
         zodSchema: z.object({
+          chat_id: z.string().optional().describe('Database chat ID to scope logs to (REQUIRED in group chats for privacy, omit in DMs to see all)'),
           limit: z.number().optional().describe('Maximum number of logs to return (default 10, max 50)'),
         }),
       }
@@ -120,39 +143,63 @@ export function createLogTools(db: BetterSqlite3): Tool[] {
   // Get Statistics
   tools.push(
     tool(
-      'Get bot usage statistics including message counts.',
+      'Get bot usage statistics including message counts. IMPORTANT: In group chats, always provide the chat_id to scope stats to only that group. In DMs with approved users, omit chat_id to see global stats.',
       async (args) => {
         const hours = args.hours || 24;
         const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 
         // Message counts
-        const msgStmt = db.prepare(`
+        let msgQuery = `
           SELECT
             COUNT(CASE WHEN direction = 'incoming' THEN 1 END) as messages_received,
             COUNT(CASE WHEN direction = 'outgoing' THEN 1 END) as responses_sent
-          FROM messages
-          WHERE timestamp >= ?
-        `);
-        const msgStats = msgStmt.get(since) as any;
+          FROM messages m
+          WHERE m.timestamp >= ?
+        `;
+        const msgParams: any[] = [since];
+
+        if (args.chat_id) {
+          msgQuery += ` AND m.chat_id = ?`;
+          msgParams.push(args.chat_id);
+        }
+
+        const msgStmt = db.prepare(msgQuery);
+        const msgStats = msgStmt.get(...msgParams) as any;
 
         // Activity log counts
-        const activityStmt = db.prepare(`
+        let activityQuery = `
           SELECT
             COUNT(CASE WHEN log_type = 'invocation' THEN 1 END) as invocations,
             COUNT(CASE WHEN log_type = 'tool_call' THEN 1 END) as tool_calls,
             COUNT(CASE WHEN log_type = 'error' THEN 1 END) as errors
-          FROM activity_logs
-          WHERE created_at >= ?
-        `);
-        const activityStats = activityStmt.get(since) as any;
+          FROM activity_logs al
+          WHERE al.created_at >= ?
+        `;
+        const activityParams: any[] = [since];
+
+        if (args.chat_id) {
+          activityQuery += ` AND al.chat_id = ?`;
+          activityParams.push(args.chat_id);
+        }
+
+        const activityStmt = db.prepare(activityQuery);
+        const activityStats = activityStmt.get(...activityParams) as any;
 
         // Unique users
-        const userStmt = db.prepare(`
+        let userQuery = `
           SELECT COUNT(DISTINCT sender) as unique_users
-          FROM messages
-          WHERE timestamp >= ? AND direction = 'incoming'
-        `);
-        const userStats = userStmt.get(since) as any;
+          FROM messages m
+          WHERE m.timestamp >= ? AND m.direction = 'incoming'
+        `;
+        const userParams: any[] = [since];
+
+        if (args.chat_id) {
+          userQuery += ` AND m.chat_id = ?`;
+          userParams.push(args.chat_id);
+        }
+
+        const userStmt = db.prepare(userQuery);
+        const userStats = userStmt.get(...userParams) as any;
 
         const stats = {
           period: `Last ${hours} hours`,
@@ -173,6 +220,7 @@ export function createLogTools(db: BetterSqlite3): Tool[] {
       {
         name: 'logs_statistics',
         zodSchema: z.object({
+          chat_id: z.string().optional().describe('Database chat ID to scope stats to (REQUIRED in group chats for privacy, omit in DMs to see global stats)'),
           hours: z.number().optional().describe('Time period in hours (default 24)'),
         }),
       }
@@ -182,7 +230,7 @@ export function createLogTools(db: BetterSqlite3): Tool[] {
   // Search Messages
   tools.push(
     tool(
-      'Search message history by content or sender.',
+      'Search message history by content or sender. IMPORTANT: In group chats, always provide the chat_id to scope search to only that group. In DMs with approved users, omit chat_id to search all.',
       async (args) => {
         const limit = Math.min(args.limit || 20, 100);
         let query = `
@@ -198,6 +246,12 @@ export function createLogTools(db: BetterSqlite3): Tool[] {
           WHERE 1=1
         `;
         const params: any[] = [];
+
+        // Filter by chat_id if provided (for privacy in group chats)
+        if (args.chat_id) {
+          query += ` AND c.id = ?`;
+          params.push(args.chat_id);
+        }
 
         if (args.query) {
           query += ` AND m.content LIKE ?`;
@@ -231,6 +285,7 @@ export function createLogTools(db: BetterSqlite3): Tool[] {
       {
         name: 'logs_search',
         zodSchema: z.object({
+          chat_id: z.string().optional().describe('Database chat ID to scope search to (REQUIRED in group chats for privacy, omit in DMs to see all)'),
           query: z.string().optional().describe('Search term to find in message content'),
           sender: z.string().optional().describe('Filter by sender phone number'),
           limit: z.number().optional().describe('Maximum number of results (default 20, max 100)'),
