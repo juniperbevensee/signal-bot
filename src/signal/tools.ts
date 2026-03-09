@@ -267,7 +267,8 @@ export function createSignalTools(ctx: SignalContext, workspaceDir?: string): To
           options.name = name;
         }
 
-        if (avatar_path) {
+        // Only process avatar if path is non-empty
+        if (avatar_path && avatar_path.trim() !== '') {
           if (!workspaceDir) {
             return JSON.stringify({
               success: false,
@@ -299,7 +300,9 @@ export function createSignalTools(ctx: SignalContext, workspaceDir?: string): To
           }, null, 2);
         }
 
+        console.log(`[Tool] signal_update_profile called with:`, JSON.stringify(options));
         const result = await ctx.updateProfile(options);
+        console.log(`[Tool] signal_update_profile result:`, JSON.stringify(result));
         return JSON.stringify(
           {
             success: true,

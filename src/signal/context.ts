@@ -323,12 +323,15 @@ export class SignalContext {
       body.base64_avatar = options.avatarBase64;
     }
 
+    console.log(`[Signal] Updating profile: ${JSON.stringify({ name: options.name, hasAvatar: !!options.avatarBase64 })}`);
+
     const response = await this.request(`/v1/profiles/${encodeURIComponent(this.phoneNumber)}`, {
       method: 'PUT',
       body: JSON.stringify(body),
     });
 
-    if (!response.ok) {
+    // 204 No Content is success for this endpoint
+    if (!response.ok && response.status !== 204) {
       const text = await response.text();
       throw new Error(`Signal API error (${response.status}): ${text}`);
     }
@@ -336,7 +339,8 @@ export class SignalContext {
     // Clear cached profile so next getProfile() fetches fresh data
     this.cachedProfile = null;
 
-    return { success: true, ...options };
+    console.log(`[Signal] Profile updated successfully`);
+    return { success: true, name: options.name, avatarUpdated: !!options.avatarBase64 };
   }
 
   /**
