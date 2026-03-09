@@ -310,6 +310,28 @@ export class SignalContext {
   }
 
   /**
+   * Update the bot's profile name.
+   */
+  async updateProfile(name: string): Promise<any> {
+    const response = await this.request(`/v1/profiles/${encodeURIComponent(this.phoneNumber)}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        name: name,
+      }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Signal API error (${response.status}): ${text}`);
+    }
+
+    // Clear cached profile so next getProfile() fetches fresh data
+    this.cachedProfile = null;
+
+    return { success: true, name };
+  }
+
+  /**
    * Send a reaction to a message.
    */
   async sendReaction(recipient: string, emoji: string, targetTimestamp: number): Promise<any> {

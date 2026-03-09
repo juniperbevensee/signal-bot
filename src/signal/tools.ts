@@ -233,11 +233,45 @@ export function createSignalTools(ctx: SignalContext, workspaceDir?: string): To
     }
   );
 
+  const signal_update_profile = tool(
+    'Update the Signal profile name for this bot.',
+    async ({ name }: { name: string }) => {
+      try {
+        const result = await ctx.updateProfile(name);
+        return JSON.stringify(
+          {
+            success: true,
+            new_name: name,
+            ...result,
+          },
+          null,
+          2
+        );
+      } catch (error) {
+        return JSON.stringify(
+          {
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          },
+          null,
+          2
+        );
+      }
+    },
+    {
+      name: 'signal_update_profile',
+      zodSchema: z.object({
+        name: z.string().describe('The new profile name to set'),
+      }),
+    }
+  );
+
   return [
     signal_send_message,
     signal_send_group_message,
     signal_list_groups,
     signal_send_reaction,
     signal_get_identity,
+    signal_update_profile,
   ];
 }
