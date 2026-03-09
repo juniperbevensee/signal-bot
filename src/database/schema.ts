@@ -56,6 +56,29 @@ export interface BotConfig {
   updated_at: string; // ISO 8601 timestamp
 }
 
+export interface ScheduledTask {
+  id: string; // UUID
+  name: string;
+  description: string;
+  schedule: string; // Cron syntax
+  enabled: number; // SQLite boolean (0 or 1)
+  last_run: string | null; // ISO 8601 timestamp
+  next_run: string | null; // ISO 8601 timestamp
+  created_at: string; // ISO 8601 timestamp
+  updated_at: string; // ISO 8601 timestamp
+  metadata: string | null; // JSON string
+}
+
+export interface TaskHistory {
+  id: string; // UUID
+  task_id: string; // Foreign key to scheduled_tasks.id
+  executed_at: string; // ISO 8601 timestamp
+  success: number; // SQLite boolean (0 or 1)
+  error: string | null;
+  duration: number; // Milliseconds
+  result: string | null; // JSON string
+}
+
 // ============================================================================
 // SQL Schema
 // ============================================================================
@@ -117,6 +140,31 @@ CREATE TABLE IF NOT EXISTS bot_config (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Scheduled tasks: Cron-based recurring tasks
+CREATE TABLE IF NOT EXISTS scheduled_tasks (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL,
+  schedule TEXT NOT NULL,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  last_run TEXT,
+  next_run TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  metadata TEXT
+);
+
+-- Task execution history: Records of task runs
+CREATE TABLE IF NOT EXISTS task_history (
+  id TEXT PRIMARY KEY,
+  task_id TEXT NOT NULL REFERENCES scheduled_tasks(id) ON DELETE CASCADE,
+  executed_at TEXT NOT NULL DEFAULT (datetime('now')),
+  success INTEGER NOT NULL,
+  error TEXT,
+  duration INTEGER NOT NULL,
+  result TEXT
+);
+
 -- ============================================================================
 -- Indexes for Performance
 -- ============================================================================
@@ -140,6 +188,14 @@ CREATE INDEX IF NOT EXISTS idx_messages_signal_timestamp
 -- Approved user lookups
 CREATE INDEX IF NOT EXISTS idx_approved_users_phone
   ON approved_users(phone_number, approval_type);
+
+-- Task history lookup by task
+CREATE INDEX IF NOT EXISTS idx_task_history_task
+  ON task_history(task_id, executed_at DESC);
+
+-- Enabled scheduled tasks
+CREATE INDEX IF NOT EXISTS idx_scheduled_tasks_enabled
+  ON scheduled_tasks(enabled, next_run);
 `;
 
 // ============================================================================

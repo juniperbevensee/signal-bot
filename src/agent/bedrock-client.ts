@@ -52,14 +52,13 @@ export class BedrockClient implements LLMClient {
   }
 
   /**
-   * Extract model ID from ARN or return as-is
-   * ARN format: arn:aws:bedrock:region:account:inference-profile/model-id
+   * Get model ID for API URL
+   * For inference profile ARNs, use the full ARN
+   * For regular model IDs, return as-is
    */
   private extractModelId(model: string): string {
-    if (model.startsWith('arn:')) {
-      const parts = model.split('/');
-      return parts[parts.length - 1];
-    }
+    // Inference profile ARNs must be passed as-is (URL encoded)
+    // Regular model IDs (e.g., anthropic.claude-3-sonnet) are also passed as-is
     return model;
   }
 

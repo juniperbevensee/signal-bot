@@ -295,7 +295,7 @@ Message: ${cleanedMessage}`;
       let response: string = '';
       if (this.config.enableActivityLogging) {
         const traceId = generateId();
-        this.database.createActivityTrace(dbChatId, traceId, {
+        const rootActivityLog = this.database.createActivityTrace(dbChatId, traceId, {
           type: 'invocation',
           message: cleanedMessage,
           sender: senderName,
@@ -316,7 +316,7 @@ Message: ${cleanedMessage}`;
           this.database.addActivitySpan(
             dbChatId,
             traceId,
-            traceId, // parent
+            rootActivityLog.id, // parent
             event.constructor.name.includes('Tool') ? 'tool_call' : 'response',
             idx + 1,
             { event: event.toString() }

@@ -15,6 +15,9 @@ import { createChatHistoryTools } from './tools/chat-history';
 import { createSandboxTools } from './tools/sandbox-fs';
 import { createBrowserTools } from './tools/browser';
 import { createLogTools } from './tools/logs';
+import { TaskScheduler } from './scheduler/task-scheduler';
+import { createBuiltInTasks } from './scheduler/tasks';
+import { createApp, startServer } from './server/app';
 
 async function main() {
   // Load configuration
@@ -44,8 +47,22 @@ async function main() {
 
   // Load memory for system prompt
   const memory = await loadMemoryForPrompt(config.workspaceDir);
+
+  // Load constitutional identity if it exists (protected, not in sandbox)
+  let constitutionalIdentity = '';
+  const identityPath = './config/constitutional_identity.md';
+  try {
+    const fs = await import('fs/promises');
+    constitutionalIdentity = await fs.readFile(identityPath, 'utf-8');
+    logger.info('Loaded constitutional identity from config/constitutional_identity.md');
+  } catch (error) {
+    // Identity file is optional
+    logger.debug('No constitutional identity file found');
+  }
+
   const systemPrompt = `You are a helpful AI assistant accessible via Signal messaging.
 
+${constitutionalIdentity ? `\n${constitutionalIdentity}\n\n---\n` : ''}
 ${memory ? `\n${memory}\n` : ''}
 
 ## Your Capabilities
@@ -54,6 +71,7 @@ You have access to the following tools:
 - **Memory tools**: Store and retrieve preferences
 - **Signal tools**: Send messages, reactions, list groups
 - **Chat history**: Search and retrieve previous messages
+- **Sandbox filesystem**: Read, write, list, and delete files in your workspace
 - **Browser tools**: Fetch web pages, search the web, retrieve JSON APIs
 - **Log tools**: View your own activity logs, statistics, and tool usage
 
@@ -103,11 +121,12 @@ Current chat context will be provided with each message.`;
     // Note: chat history tools are created per-message with current chat ID
   ];
 
-  // Add sandbox tools if configured
-  if (config.sandboxDir) {
-    const sandboxTools = createSandboxTools(config.sandboxDir);
+  // Add sandbox tools if configured (defaults to workspaceDir for backward compatibility)
+  const sandboxDir = config.sandboxDir || config.workspaceDir;
+  if (sandboxDir) {
+    const sandboxTools = createSandboxTools(sandboxDir);
     allTools.push(...sandboxTools);
-    logger.info(`Sandbox tools enabled at ${config.sandboxDir}`);
+    logger.info(`Sandbox tools enabled at ${sandboxDir}`);
   }
 
   // Load MCP tools if enabled (optional)
@@ -138,6 +157,20 @@ Current chat context will be provided with each message.`;
   });
   logger.info('Agent initialized');
 
+  // Create task scheduler
+  const scheduler = new TaskScheduler(db);
+
+  // Register built-in tasks
+  const builtInTasks = createBuiltInTasks(db, config);
+  for (const task of builtInTasks) {
+    await scheduler.register(task);
+  }
+  logger.info(`Registered ${builtInTasks.length} built-in scheduled tasks`);
+
+  // Start enabled scheduled tasks
+  await scheduler.startAll();
+  logger.info('Scheduler initialized');
+
   // Create listener
   const listener = new SignalListener({
     signalContext,
@@ -147,11 +180,56 @@ Current chat context will be provided with each message.`;
     logger,
   });
 
+  // Start web server if enabled
+  let webServer: Awaited<ReturnType<typeof startServer>> | null = null;
+
+  if (config.webUI?.enabled) {
+    try {
+      const app = createApp(
+        {
+          db,
+          agent,
+          scheduler,
+          config,
+        },
+        {
+          port: config.webUI.port,
+          isDev: process.env.NODE_ENV === 'development',
+          cors: config.webUI.cors,
+        }
+      );
+
+      webServer = await startServer(app, config.webUI.port);
+      logger.info(`Web UI is available at http://localhost:${config.webUI.port}`);
+    } catch (error) {
+      logger.error('Failed to start web server:', error);
+      logger.warn('Continuing without web UI...');
+    }
+  }
+
   // Graceful shutdown
   const shutdown = async () => {
     logger.info('Shutting down...');
+
+    // Stop scheduler
+    scheduler.stopAll();
+
+    // Stop Signal listener
     await listener.stop();
+
+    // Stop web server if running
+    if (webServer) {
+      try {
+        await webServer.close();
+        logger.info('Web server stopped');
+      } catch (error) {
+        logger.error('Error stopping web server:', error);
+      }
+    }
+
+    // Close database
     db.close();
+
     process.exit(0);
   };
 

@@ -3,6 +3,8 @@ node_modules/
 
 # Build output
 dist/
+web/dist/
+web/node_modules/
 
 # Environment variables
 .env
@@ -50,3 +52,7 @@ signal-data-*/
 # Temporary files
 tmp/
 temp/
+ecosystem.config.cjs
+
+# Web UI
+web/.vite/

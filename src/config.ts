@@ -76,6 +76,19 @@ export interface BotConfig {
     }>;
   };
 
+  // Web UI - Optional
+  webUI?: {
+    enabled: boolean;
+    port: number;
+    cors?: {
+      origin: string | string[];
+    };
+    auth?: {
+      username: string;
+      password: string;
+    };
+  };
+
   // Optional Integrations
   integrations?: {
     discord?: {
@@ -126,8 +139,10 @@ export function loadConfig(): BotConfig {
     errors.push('SIGNAL_PHONE_NUMBER is required');
   }
 
-  if (!ANTHROPIC_API_KEY) {
-    errors.push('ANTHROPIC_API_KEY is required');
+  // ANTHROPIC_API_KEY is only required for anthropic provider
+  const LLM_PROVIDER_CHECK = process.env.LLM_PROVIDER || 'anthropic';
+  if (LLM_PROVIDER_CHECK === 'anthropic' && !ANTHROPIC_API_KEY) {
+    errors.push('ANTHROPIC_API_KEY is required when using anthropic provider');
   }
 
   // Database configuration
@@ -266,6 +281,36 @@ export function loadConfig(): BotConfig {
     }
   }
 
+  // Web UI - Optional
+  let webUIConfig: BotConfig['webUI'] | undefined;
+  const WEB_UI_ENABLED = process.env.WEB_UI_ENABLED !== 'false'; // Enabled by default
+  const WEB_UI_PORT = parseInt(process.env.WEB_UI_PORT || '3000', 10);
+  const WEB_UI_CORS_ORIGIN = process.env.WEB_UI_CORS_ORIGIN;
+  const WEB_UI_AUTH_USERNAME = process.env.WEB_UI_AUTH_USERNAME;
+  const WEB_UI_AUTH_PASSWORD = process.env.WEB_UI_AUTH_PASSWORD;
+
+  if (WEB_UI_ENABLED) {
+    webUIConfig = {
+      enabled: true,
+      port: WEB_UI_PORT,
+    };
+
+    if (WEB_UI_CORS_ORIGIN) {
+      webUIConfig.cors = {
+        origin: WEB_UI_CORS_ORIGIN.includes(',')
+          ? WEB_UI_CORS_ORIGIN.split(',').map(s => s.trim())
+          : WEB_UI_CORS_ORIGIN,
+      };
+    }
+
+    if (WEB_UI_AUTH_USERNAME && WEB_UI_AUTH_PASSWORD) {
+      webUIConfig.auth = {
+        username: WEB_UI_AUTH_USERNAME,
+        password: WEB_UI_AUTH_PASSWORD,
+      };
+    }
+  }
+
   // Throw if validation failed
   if (errors.length > 0) {
     throw new Error(
@@ -305,6 +350,7 @@ export function loadConfig(): BotConfig {
     enableActivityLogging: ENABLE_ACTIVITY_LOGGING,
     logLevel: LOG_LEVEL,
     mcp: mcpConfig,
+    webUI: webUIConfig,
     integrations,
   };
 }
