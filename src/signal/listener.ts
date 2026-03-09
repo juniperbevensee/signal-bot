@@ -293,7 +293,7 @@ export class SignalListener {
 [CONTEXT - You are responding to a Signal message]
 - From: ${senderName}
 - ID: ${senderId}
-${isGroup ? `- Group ID: ${groupId}\n- Database Chat ID: ${dbChatId} (IMPORTANT: Use this chat_id when calling log tools to scope to this group only)` : '- Direct message (you may access logs across all groups)'}
+${isGroup ? `- Group ID: ${groupId}\n- Database Chat ID: ${dbChatId} (IMPORTANT: Use this chat_id when calling log tools to scope to this group only)\n- IMPORTANT: You are in a GROUP CHAT. Your response will be sent to the GROUP automatically. DO NOT use signal_send_message or signal_send_group_message tools - just respond naturally.` : '- Direct message (you may access logs across all groups)'}
 - Timestamp: ${new Date(env.timestamp).toISOString()}
 - You can react using signal_send_reaction with recipient=${senderId}, target_timestamp=${env.timestamp}
 

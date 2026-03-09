@@ -13,7 +13,7 @@ import { validateFilePath, isDangerousExtension } from '../utils/security';
  */
 export function createSignalTools(ctx: SignalContext, workspaceDir?: string, approvedUsers?: string[]): Tool[] {
   const signal_send_message = tool(
-    'Send a Signal message to one or more phone numbers. Can include image/file attachments. Use E.164 format (e.g., +14155551234).',
+    'Send a NEW Signal message to one or more phone numbers. Can include image/file attachments. Use E.164 format (e.g., +14155551234). WARNING: Do NOT use this to reply to the current conversation - your response is sent automatically. Only use this to initiate new messages to different people.',
     async ({
       recipients,
       message,
@@ -91,7 +91,7 @@ export function createSignalTools(ctx: SignalContext, workspaceDir?: string, app
   );
 
   const signal_send_group_message = tool(
-    'Send a Signal message to a group. Can include image/file attachments. Use signal_list_groups to get group IDs.',
+    'Send a NEW Signal message to a group. Can include image/file attachments. Use signal_list_groups to get group IDs. WARNING: Do NOT use this to reply to a group conversation - your response is sent automatically. Only use this to initiate new messages to different groups.',
     async ({
       group_id,
       message,
