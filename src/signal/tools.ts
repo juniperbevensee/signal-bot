@@ -11,7 +11,7 @@ import { validateFilePath, isDangerousExtension } from '../utils/security';
 /**
  * Create Signal tools with injected SignalContext
  */
-export function createSignalTools(ctx: SignalContext, workspaceDir?: string): Tool[] {
+export function createSignalTools(ctx: SignalContext, workspaceDir?: string, approvedUsers?: string[]): Tool[] {
   const signal_send_message = tool(
     'Send a Signal message to one or more phone numbers. Can include image/file attachments. Use E.164 format (e.g., +14155551234).',
     async ({
@@ -264,15 +264,25 @@ export function createSignalTools(ctx: SignalContext, workspaceDir?: string): To
   );
 
   const signal_update_profile = tool(
-    'Update the Signal profile name and/or avatar image for this bot. Provide at least one of name or avatar_path.',
+    'Update the Signal profile name and/or avatar image for this bot. IMPORTANT: Only approved users can update the profile. Include sender_id from the context.',
     async ({
+      sender_id,
       name,
       avatar_path,
     }: {
+      sender_id: string;
       name?: string;
       avatar_path?: string;
     }) => {
       try {
+        // Access control: Only approved users can update profile
+        if (approvedUsers && approvedUsers.length > 0 && !approvedUsers.includes(sender_id)) {
+          return JSON.stringify({
+            success: false,
+            error: 'Permission denied: Only approved users can update the bot profile',
+          }, null, 2);
+        }
+
         const options: { name?: string; avatarBase64?: string } = {};
 
         if (name) {
@@ -345,6 +355,7 @@ export function createSignalTools(ctx: SignalContext, workspaceDir?: string): To
     {
       name: 'signal_update_profile',
       zodSchema: z.object({
+        sender_id: z.string().describe('The sender ID from the context (required for permission check)'),
         name: z.string().optional().describe('The new profile name to set'),
         avatar_path: z.string().optional().describe('Path to image file for profile avatar (relative to workspace/sandbox directory, e.g., "avatar.png")'),
       }),

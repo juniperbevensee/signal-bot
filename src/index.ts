@@ -109,7 +109,7 @@ Current chat context will be provided with each message.`;
   }
 
   // Create tools
-  const signalTools = createSignalTools(signalContext, config.workspaceDir);
+  const signalTools = createSignalTools(signalContext, config.workspaceDir, config.accessControl.approvedUsers);
   const browserTools = createBrowserTools();
   const logTools = createLogTools(db.db);
 

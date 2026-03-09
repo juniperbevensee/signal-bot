@@ -39,6 +39,7 @@ export interface BotConfig {
     allowedSenders: string[]; // Phone numbers
     allowedGroups: string[]; // Group IDs
     botNames: string[]; // Names the bot responds to (for mentions)
+    approvedUsers: string[]; // Phone numbers/UUIDs with elevated permissions (profile updates, etc.)
   };
 
   // LLM
@@ -164,6 +165,7 @@ export function loadConfig(): BotConfig {
   const ALLOWED_SENDERS = parseList(process.env.SIGNAL_ALLOWED_SENDERS);
   const ALLOWED_GROUPS = parseList(process.env.SIGNAL_ALLOWED_GROUPS);
   const BOT_NAMES = parseList(process.env.SIGNAL_BOT_NAMES, ['Bot', 'Assistant']);
+  const APPROVED_USERS = parseList(process.env.SIGNAL_APPROVED_USERS);
 
   if (ALLOWED_SENDERS.length === 0 && ALLOWED_GROUPS.length === 0) {
     errors.push(
@@ -333,6 +335,7 @@ export function loadConfig(): BotConfig {
       allowedSenders: ALLOWED_SENDERS,
       allowedGroups: ALLOWED_GROUPS,
       botNames: BOT_NAMES,
+      approvedUsers: APPROVED_USERS,
     },
     llm: {
       provider: LLM_PROVIDER,
