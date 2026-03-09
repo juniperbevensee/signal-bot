@@ -5,11 +5,28 @@ A simple AI assistant for Signal that you can run on your own computer. Chat wit
 ## What You Need
 
 1. A computer (Mac, Linux, Windows with WSL, or Raspberry Pi)
-2. Signal app on your phone
+2. **A phone number for the bot** - This **MUST** be different from your personal Signal number:
+   - Get a new number (Google Voice, Twilio, burner phone) - **Recommended**
+   - OR link as a secondary device to your existing account (see "Device Linking" below)
 3. Docker installed ([get Docker](https://docs.docker.com/get-docker/))
 4. An Anthropic API key ([sign up free](https://console.anthropic.com/))
 
 > **Note:** This bot uses [signal-cli-rest-api](https://github.com/bbernhard/signal-cli-rest-api) (run via Docker) as the bridge to Signal's servers. The bot itself runs on Node.js.
+
+### Phone Number Options
+
+**Option 1: New Number (Recommended)**
+- Get a number from Google Voice, Twilio, talkyto.io, or a burner phone
+- Register it with Signal using headless authentication (see below)
+- Bot operates independently with its own Signal identity
+- Best for production use and group chats
+
+**Option 2: Device Linking (Testing/Personal Use)**
+- Link the bot as a secondary device to your existing Signal account
+- Bot appears as "you" in conversations
+- Good for testing via "Note to Self" feature
+- ⚠️ **Caveat:** In groups, bot responds as you - can confuse other members
+- Setup: Use QR code linking method described in "Manual Setup" section below
 
 ## Setup (5 minutes)
 
@@ -30,10 +47,12 @@ nano .env  # or use any text editor
 
 **Required settings:**
 ```bash
-SIGNAL_PHONE_NUMBER=+14155551234      # Your bot's phone number
+SIGNAL_PHONE_NUMBER=+14155551234      # Bot's phone number (the NEW number, not yours!)
 ANTHROPIC_API_KEY=sk-ant-api03-...    # From console.anthropic.com
-SIGNAL_ALLOWED_SENDERS=+14155551234   # Who can message the bot (comma-separated)
+SIGNAL_ALLOWED_SENDERS=+19876543210   # YOUR personal number (who can message the bot)
 ```
+
+> **Important:** `SIGNAL_PHONE_NUMBER` is the bot's number, `SIGNAL_ALLOWED_SENDERS` is YOUR number.
 
 **Review these defaults:**
 ```bash
@@ -58,9 +77,18 @@ This single command:
 - ✅ Stops any existing bot processes
 - ✅ Starts the bot(s) via PM2
 
-That's it! Send a message to your bot's number to test it.
+That's it! From your personal Signal account, send a message to the bot's number to test it.
 
 > **Tip:** `npm run start:all` is also the restart command - it automatically stops existing processes first. Use it whenever you change config or pull updates.
+
+### Testing
+
+1. Open Signal on your phone
+2. Start a new conversation with the bot's phone number (the number you configured in `SIGNAL_PHONE_NUMBER`)
+3. Send a message: "Hello!" or "What can you do?"
+4. The bot should respond within a few seconds
+
+**If using Device Linking:** Message yourself via "Note to Self" to test the bot.
 
 ---
 
@@ -132,7 +160,9 @@ You should see:
 
 ### Test It
 
-Send a message to your bot's number from Signal. Try: "Hello!" or "What can you do?"
+From your personal Signal account, send a message to the bot's phone number. Try: "Hello!" or "What can you do?"
+
+If you used device linking, you can message "Note to Self" to test.
 
 ## Using the Bot
 
