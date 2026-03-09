@@ -310,14 +310,22 @@ export class SignalContext {
   }
 
   /**
-   * Update the bot's profile name.
+   * Update the bot's profile (name and/or avatar).
    */
-  async updateProfile(name: string): Promise<any> {
+  async updateProfile(options: { name?: string; avatarBase64?: string }): Promise<any> {
+    const body: any = {};
+
+    if (options.name) {
+      body.name = options.name;
+    }
+
+    if (options.avatarBase64) {
+      body.base64_avatar = options.avatarBase64;
+    }
+
     const response = await this.request(`/v1/profiles/${encodeURIComponent(this.phoneNumber)}`, {
       method: 'PUT',
-      body: JSON.stringify({
-        name: name,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -328,7 +336,7 @@ export class SignalContext {
     // Clear cached profile so next getProfile() fetches fresh data
     this.cachedProfile = null;
 
-    return { success: true, name };
+    return { success: true, ...options };
   }
 
   /**

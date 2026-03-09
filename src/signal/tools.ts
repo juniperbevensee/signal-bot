@@ -234,14 +234,59 @@ export function createSignalTools(ctx: SignalContext, workspaceDir?: string): To
   );
 
   const signal_update_profile = tool(
-    'Update the Signal profile name for this bot.',
-    async ({ name }: { name: string }) => {
+    'Update the Signal profile name and/or avatar image for this bot. Provide at least one of name or avatar_path.',
+    async ({
+      name,
+      avatar_path,
+    }: {
+      name?: string;
+      avatar_path?: string;
+    }) => {
       try {
-        const result = await ctx.updateProfile(name);
+        const options: { name?: string; avatarBase64?: string } = {};
+
+        if (name) {
+          options.name = name;
+        }
+
+        if (avatar_path) {
+          if (!workspaceDir) {
+            return JSON.stringify({
+              success: false,
+              error: 'Avatar upload disabled: WORKSPACE_DIR not configured',
+            }, null, 2);
+          }
+
+          // Security: Validate file path
+          const validatedPath = validateFilePath(avatar_path, workspaceDir);
+
+          // Only allow image files
+          const ext = validatedPath.toLowerCase().split('.').pop();
+          if (!['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')) {
+            return JSON.stringify({
+              success: false,
+              error: 'Avatar must be an image file (jpg, png, gif, webp)',
+            }, null, 2);
+          }
+
+          const fs = await import('fs/promises');
+          const buffer = await fs.readFile(validatedPath);
+          options.avatarBase64 = buffer.toString('base64');
+        }
+
+        if (!options.name && !options.avatarBase64) {
+          return JSON.stringify({
+            success: false,
+            error: 'Must provide at least one of: name, avatar_path',
+          }, null, 2);
+        }
+
+        const result = await ctx.updateProfile(options);
         return JSON.stringify(
           {
             success: true,
-            new_name: name,
+            updated_name: options.name || null,
+            updated_avatar: !!options.avatarBase64,
             ...result,
           },
           null,
@@ -261,7 +306,8 @@ export function createSignalTools(ctx: SignalContext, workspaceDir?: string): To
     {
       name: 'signal_update_profile',
       zodSchema: z.object({
-        name: z.string().describe('The new profile name to set'),
+        name: z.string().optional().describe('The new profile name to set'),
+        avatar_path: z.string().optional().describe('Path to image file for profile avatar (in workspace directory)'),
       }),
     }
   );
