@@ -9,7 +9,10 @@ A simple AI assistant for Signal that you can run on your own computer. Chat wit
    - Get a new number (Google Voice, Twilio, burner phone) - **Recommended**
    - OR link as a secondary device to your existing account (see "Device Linking" below)
 3. Docker installed ([get Docker](https://docs.docker.com/get-docker/))
-4. An Anthropic API key ([sign up free](https://console.anthropic.com/))
+4. **An LLM** - Choose one:
+   - **LM Studio with local models** (FREE, runs on your computer) - **Recommended for testing**
+   - Anthropic API key ([sign up](https://console.anthropic.com/)) - Paid, more powerful
+   - See "Alternative LLM Providers" section for OpenAI, Vertex AI, etc.
 
 > **Note:** This bot uses [signal-cli-rest-api](https://github.com/bbernhard/signal-cli-rest-api) (run via Docker) as the bridge to Signal's servers. The bot itself runs on Node.js.
 
@@ -48,11 +51,32 @@ nano .env  # or use any text editor
 **Required settings:**
 ```bash
 SIGNAL_PHONE_NUMBER=+14155551234      # Bot's phone number (the NEW number, not yours!)
-ANTHROPIC_API_KEY=sk-ant-api03-...    # From console.anthropic.com
 SIGNAL_ALLOWED_SENDERS=+19876543210   # YOUR personal number (who can message the bot)
+
+# Choose ONE of these LLM options:
+
+# Option 1: LM Studio (FREE, local) - Recommended for testing
+LLM_PROVIDER=lmstudio
+LLM_BASE_URL=http://localhost:1234
+LLM_MODEL=qwen/qwen-2.5-coder-7b-instruct
+ANTHROPIC_API_KEY=not-needed  # Required but not used with LM Studio
+
+# Option 2: Anthropic Claude (Paid, cloud)
+# LLM_PROVIDER=anthropic
+# ANTHROPIC_API_KEY=sk-ant-api03-...
 ```
 
 > **Important:** `SIGNAL_PHONE_NUMBER` is the bot's number, `SIGNAL_ALLOWED_SENDERS` is YOUR number.
+
+**If using LM Studio (recommended for testing):**
+
+1. Download [LM Studio](https://lmstudio.ai) (it's free!)
+2. Open LM Studio → Search for "qwen-2.5-coder-7b" or "qwen-2.5-coder-9b"
+3. Click Download on the model
+4. Click the "↔" icon (Local Server) → Start Server
+5. Leave it running on `http://localhost:1234`
+
+That's it! The bot will use your local model instead of paid API calls.
 
 **Review these defaults:**
 ```bash
@@ -286,6 +310,37 @@ Only these users can:
 
 ## Alternative LLM Providers
 
+The bot works with multiple LLM providers. LM Studio (local, free) is recommended for testing. Switch to cloud providers for production use.
+
+### Using Local Models (LM Studio) - FREE
+
+**Recommended for testing and privacy-conscious users.**
+
+Run powerful models locally without API costs or internet dependency.
+
+**Recommended models:**
+- `qwen/qwen-2.5-coder-7b-instruct` - Best for coding tasks (4GB RAM)
+- `qwen/qwen-2.5-coder-9b-instruct` - More capable (6GB RAM)
+- `llama-3.2-3b-instruct` - Fastest, lower requirements (2GB RAM)
+
+Setup:
+1. Download [LM Studio](https://lmstudio.ai) (free desktop app)
+2. Search for "qwen-2.5-coder" in LM Studio
+3. Download the 7B or 9B model
+4. Click "↔" (Local Server) → Start Server
+5. Configure `.env`:
+
+```bash
+LLM_PROVIDER=lmstudio
+LLM_BASE_URL=http://localhost:1234
+LLM_MODEL=qwen/qwen-2.5-coder-7b-instruct
+ANTHROPIC_API_KEY=not-needed
+```
+
+Restart the bot - done! No API costs, runs completely offline.
+
+> **Note:** LM Studio has a CLI (`lms`) that can automate model downloads. Future versions may auto-download models on startup if configured.
+
 ### Using Google Vertex AI (Gemini)
 
 Want to use Google's Gemini models? Configure Vertex AI:
@@ -318,41 +373,17 @@ ANTHROPIC_API_KEY=not-needed
 
 Restart the bot. It now uses Gemini via Vertex AI!
 
-### Using Local Models (LM Studio)
+### Using Anthropic Claude (Recommended for Production)
 
-Don't want to pay for API calls? Run models locally with LM Studio.
-
-#### Step 1: Install LM Studio
-
-Download from [lmstudio.ai](https://lmstudio.ai)
-
-#### Step 2: Download a Model
-
-1. Open LM Studio
-2. Search for "llama-3.2" or "qwen-2.5"
-3. Click Download
-
-#### Step 3: Start the Server
-
-1. Click the "↔" icon (Local Server)
-2. Click "Start Server"
-3. Note the URL (usually http://localhost:1234)
-
-#### Step 4: Update Configuration
-
-In your `.env` file:
+Best quality responses, but requires paid API access.
 
 ```bash
-# Change these lines:
-LLM_PROVIDER=lmstudio
-LLM_BASE_URL=http://localhost:1234
-LLM_MODEL=llama-3.2-3b-instruct
-
-# You still need this (but can be any value):
-ANTHROPIC_API_KEY=not-needed
+LLM_PROVIDER=anthropic
+ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
+LLM_MODEL=claude-3-5-sonnet-20241022
 ```
 
-Restart the bot. It now uses your local model!
+Get your API key at [console.anthropic.com](https://console.anthropic.com/).
 
 ## Troubleshooting
 
