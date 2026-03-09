@@ -286,6 +286,15 @@ Set `ENABLE_ACTIVITY_LOGGING=true` in `.env` to see detailed tool usage logs.
 - Rate limiting prevents quota exhaustion
 - All data stays on your machine
 
+### Privacy in Group Chats
+
+When the bot analyzes logs (message history, statistics, tool usage):
+
+- **In group chats:** The bot only analyzes logs from the current group - members cannot access logs from other groups
+- **In DMs with approved users:** Full access to logs across all groups (useful for bot administrators)
+
+This ensures group conversations remain private and members cannot query information from other groups the bot participates in.
+
 ## Need Help?
 
 - Check [agents.md](./agents.md) for technical details
